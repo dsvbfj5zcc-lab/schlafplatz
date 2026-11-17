@@ -18,7 +18,7 @@
   --accent:#FFB547; --accent-2:#FFD08A; --good:#5BD68A; --good-bg:#16301F; --bad:#FF9A8E; --bad-bg:#3A1D1A;
 }
 *{box-sizing:border-box}
-html,body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text",Inter,system-ui,sans-serif;-webkit-text-size-adjust:100%}
+html,body{touch-action:manipulation;margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text",Inter,system-ui,sans-serif;-webkit-text-size-adjust:100%}
 body{min-height:100vh}
 a{color:var(--accent)}
 #app{max-width:480px;margin:0 auto;padding:calc(env(safe-area-inset-top) + 20px) 18px calc(env(safe-area-inset-bottom) + 96px)}
@@ -44,7 +44,8 @@ h2{margin:0;font-size:18px}
 .pill{display:inline-block;font-size:12px;font-weight:700;padding:4px 10px;border-radius:999px;color:#0E1114;background:var(--muted);white-space:nowrap}
 .pill.p-accent{background:var(--accent)} .pill.p-warn{background:var(--accent-2)} .pill.p-good{background:var(--good)} .pill.p-bad{background:var(--bad)}
 .good{color:var(--good)} .warn{color:var(--accent-2)} .bad{color:var(--bad)}
-button,.btn{font:inherit;cursor:pointer;-webkit-tap-highlight-color:transparent}
+button,.btn,a,input,select,textarea,label{touch-action:manipulation}
+button,.btn{font:inherit;cursor:pointer;-webkit-tap-highlight-color:transparent;-webkit-user-select:none;user-select:none}
 .btn{display:flex;align-items:center;justify-content:center;gap:8px;min-height:52px;border-radius:14px;border:1px solid var(--line);background:var(--surface);color:var(--text);font-weight:600;font-size:16px;text-decoration:none;padding:0 14px}
 .btn.primary{background:var(--accent);border-color:var(--accent);color:#0E1114;font-weight:700;font-size:18px;min-height:60px}
 .btn.outline-good{background:transparent;border:2px solid var(--good);color:var(--good)}
@@ -55,9 +56,9 @@ button,.btn{font:inherit;cursor:pointer;-webkit-tap-highlight-color:transparent}
 .feel{height:56px;border-radius:12px;border:1px solid var(--line);background:var(--inset);color:var(--text);font-size:20px;font-weight:600}
 .feel[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:#0E1114}
 input,select,textarea{font:inherit;color:var(--text);background:var(--inset);border:1px solid var(--line);border-radius:12px;padding:0 12px;min-height:50px;width:100%;font-size:17px}
-textarea{padding:10px 12px;min-height:90px;font-size:14px}
+textarea{padding:10px 12px;min-height:90px;font-size:16px}
 input[type=radio]{width:22px;height:22px;min-height:0;accent-color:var(--accent);margin:2px 0 0;flex:none}
-input[type=file]{padding:12px;font-size:14px}
+input[type=file]{padding:12px;font-size:16px}
 label.f{display:flex;flex-direction:column;gap:6px;font-size:13px;color:var(--muted)}
 .list-row{display:flex;justify-content:space-between;align-items:center;min-height:52px;border-bottom:1px solid var(--line);gap:10px}
 .list-row:last-child{border-bottom:none}
@@ -578,7 +579,7 @@ function viewLage(){
       <button class="btn sm" data-a="gps" ${e.route?'':'disabled'} style="color:var(--good)">${ICON.gps} GPS</button></div>
     <div class="grid2">
       <label class="f">Routen-km<input type="number" inputmode="decimal" step="0.1" data-l="km" value="${esc(L.km)}" style="font-size:28px;font-weight:700;min-height:58px"></label>
-      <label class="f">Uhrzeit<input type="datetime-local" data-l="time" value="${esc(L.time)}" style="font-size:15px;min-height:58px"></label>
+      <label class="f">Uhrzeit<input type="datetime-local" data-l="time" value="${esc(L.time)}" style="font-size:16px;min-height:58px"></label>
     </div>
     <button class="btn sm" data-a="now">Uhrzeit auf jetzt setzen</button>
   </div>
