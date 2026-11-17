@@ -1,0 +1,886 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0E1114">
+<meta name="apple-mobile-web-app-title" content="Schlafplatz">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" type="image/png" href="icon-192.png">
+<title>Schlafplatz-Finder</title>
+<style>
+:root{
+  --bg:#0E1114; --surface:#1A1F24; --inset:#12161A; --line:#2A3138;
+  --text:#F2F4F5; --soft:#C9D1D8; --muted:#9AA5AF;
+  --accent:#FFB547; --accent-2:#FFD08A; --good:#5BD68A; --good-bg:#16301F; --bad:#FF9A8E; --bad-bg:#3A1D1A;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text",Inter,system-ui,sans-serif;-webkit-text-size-adjust:100%}
+body{min-height:100vh}
+a{color:var(--accent)}
+#app{max-width:480px;margin:0 auto;padding:calc(env(safe-area-inset-top) + 20px) 18px calc(env(safe-area-inset-bottom) + 96px)}
+h1{margin:0;font-size:28px;line-height:1.1;letter-spacing:-0.01em}
+h2{margin:0;font-size:18px}
+.eyebrow{font-size:12px;color:var(--muted);letter-spacing:.05em;text-transform:uppercase}
+.muted{color:var(--muted)} .soft{color:var(--soft)} .small{font-size:13px} .tiny{font-size:12px}
+.stack{display:flex;flex-direction:column;gap:14px}
+.row{display:flex;align-items:center;gap:10px}
+.between{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.card{background:var(--surface);border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:12px}
+.card.hl{border:2px solid var(--accent)}
+.card.dim{background:#14181C;border:1px dashed var(--line)}
+.grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.grid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.grid5{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px}
+.stat{display:flex;flex-direction:column;gap:2px;min-width:0}
+.stat .l{font-size:11px;color:var(--muted)}
+.stat .v{font-size:19px;font-weight:600}
+.tile{background:var(--surface);border-radius:14px;padding:12px}
+.big{font-size:34px;font-weight:700;letter-spacing:-0.02em}
+.huge{font-size:50px;font-weight:700;letter-spacing:-0.02em;line-height:1}
+.pill{display:inline-block;font-size:12px;font-weight:700;padding:4px 10px;border-radius:999px;color:#0E1114;background:var(--muted);white-space:nowrap}
+.pill.p-accent{background:var(--accent)} .pill.p-warn{background:var(--accent-2)} .pill.p-good{background:var(--good)} .pill.p-bad{background:var(--bad)}
+.good{color:var(--good)} .warn{color:var(--accent-2)} .bad{color:var(--bad)}
+button,.btn{font:inherit;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.btn{display:flex;align-items:center;justify-content:center;gap:8px;min-height:52px;border-radius:14px;border:1px solid var(--line);background:var(--surface);color:var(--text);font-weight:600;font-size:16px;text-decoration:none;padding:0 14px}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#0E1114;font-weight:700;font-size:18px;min-height:60px}
+.btn.outline-good{background:transparent;border:2px solid var(--good);color:var(--good)}
+.btn.sm{min-height:40px;font-size:14px;border-radius:10px;background:var(--inset)}
+.btn.ghost{background:transparent;border-style:dashed;color:var(--soft)}
+.btn[aria-disabled="true"],.btn:disabled{opacity:.35;pointer-events:none}
+.sq{width:48px;height:48px;border-radius:12px;border:1px solid var(--line);background:var(--inset);color:var(--text);font-size:22px;font-weight:600;display:flex;align-items:center;justify-content:center}
+.feel{height:56px;border-radius:12px;border:1px solid var(--line);background:var(--inset);color:var(--text);font-size:20px;font-weight:600}
+.feel[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:#0E1114}
+input,select,textarea{font:inherit;color:var(--text);background:var(--inset);border:1px solid var(--line);border-radius:12px;padding:0 12px;min-height:50px;width:100%;font-size:17px}
+textarea{padding:10px 12px;min-height:90px;font-size:14px}
+input[type=radio]{width:22px;height:22px;min-height:0;accent-color:var(--accent);margin:2px 0 0;flex:none}
+input[type=file]{padding:12px;font-size:14px}
+label.f{display:flex;flex-direction:column;gap:6px;font-size:13px;color:var(--muted)}
+.list-row{display:flex;justify-content:space-between;align-items:center;min-height:52px;border-bottom:1px solid var(--line);gap:10px}
+.list-row:last-child{border-bottom:none}
+.ev{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:14px;display:flex;gap:12px;align-items:flex-start}
+.ev.on{border:2px solid var(--accent)}
+.opt{cursor:pointer;text-align:left;color:inherit;font:inherit;border:none;width:100%}
+.opt.card{border:2px solid transparent}
+.opt.card.hl{border-color:var(--accent)}
+.profile{height:90px;display:flex;align-items:flex-end;gap:2px}
+.profile div{flex:1;border-radius:2px 2px 0 0;background:#4A5560}
+nav.tabs{position:fixed;left:0;right:0;bottom:0;background:rgba(14,17,20,.96);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom);z-index:5}
+nav.tabs .in{max-width:480px;margin:0 auto;display:grid;grid-template-columns:repeat(4,1fr)}
+nav.tabs button{background:none;border:none;color:var(--muted);height:62px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font-size:12px;font-weight:600}
+nav.tabs button[aria-current="page"]{color:var(--accent)}
+nav.tabs svg{width:22px;height:22px}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(env(safe-area-inset-bottom) + 76px);background:#2A3138;color:var(--text);padding:12px 16px;border-radius:12px;font-size:14px;max-width:90vw;z-index:9;box-shadow:0 6px 24px rgba(0,0,0,.4)}
+.script{font-size:17px;line-height:1.45;margin:0}
+.note{background:var(--surface);border-radius:12px;padding:12px 14px;font-size:13px;line-height:1.45;color:var(--soft)}
+.back{width:44px;height:44px;border-radius:12px;border:1px solid var(--line);background:var(--inset);display:flex;align-items:center;justify-content:center;padding:0;flex:none}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+details summary{cursor:pointer;color:var(--soft);font-size:14px;min-height:44px;display:flex;align-items:center}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<nav class="tabs" id="tabs" aria-label="Hauptnavigation"></nav>
+<div id="toast" class="toast" role="status" hidden></div>
+
+<script>
+/* ===== LOGIC (rein, ohne DOM) ===== */
+const NIGHT_FACTOR = 0.88;            // Tempo-Abzug nachts
+const NIGHT_FROM = 21*60+30, NIGHT_TO = 6*60;
+const FEEL_FACTOR = [0.80, 0.90, 1.00, 1.05, 1.10];
+const FEEL_MAXRIDE = [1.5, 2.5, 4, 5.5, 7];
+
+function haversine(lat1, lon1, lat2, lon2){
+  const R=6371, r=Math.PI/180;
+  const dLat=(lat2-lat1)*r, dLon=(lon2-lon1)*r;
+  const a=Math.sin(dLat/2)**2+Math.cos(lat1*r)*Math.cos(lat2*r)*Math.sin(dLon/2)**2;
+  return 2*R*Math.asin(Math.min(1,Math.sqrt(a)));
+}
+
+/* Route: pts = [[km, ele, lat, lon], ...] */
+function buildRoute(raw, name){
+  if(raw.length<2) throw new Error('Zu wenige Punkte in der GPX-Datei.');
+  const kept=[]; let km=0, lastKept=null, prev=raw[0];
+  for(let i=0;i<raw.length;i++){
+    const p=raw[i];
+    if(i>0) km+=haversine(prev[0],prev[1],p[0],p[1]);
+    prev=p;
+    if(lastKept===null || km-lastKept>=0.1 || i===raw.length-1){ kept.push([km, p[2], p[0], p[1]]); lastKept=km; }
+  }
+  // Höhe glätten (gleitender Mittelwert über 5 Punkte), um GPS-Rauschen nicht als Höhenmeter zu zählen
+  const hasEle = raw.some(p=>p[2]!=null && !isNaN(p[2]));
+  const sm = kept.map((p,i)=>{
+    if(!hasEle) return 0;
+    let s=0,n=0; for(let j=Math.max(0,i-2);j<=Math.min(kept.length-1,i+2);j++){ if(kept[j][1]!=null&&!isNaN(kept[j][1])){s+=kept[j][1];n++;} }
+    return n? s/n : 0;
+  });
+  const pts = kept.map((p,i)=>[Math.round(p[0]*1000)/1000, Math.round(sm[i]*10)/10, Math.round(p[2]*1e5)/1e5, Math.round(p[3]*1e5)/1e5]);
+  const r = {name:name||'Route', pts, hasEle};
+  r.totalKm = pts[pts.length-1][0];
+  r.totalHm = Math.round(cumUp(r)[pts.length-1]);
+  return r;
+}
+function parseGPX(text, name){
+  const doc = new DOMParser().parseFromString(text, 'application/xml');
+  let nodes = Array.from(doc.getElementsByTagName('trkpt'));
+  if(!nodes.length) nodes = Array.from(doc.getElementsByTagName('rtept'));
+  if(!nodes.length) throw new Error('Keine Track- oder Routenpunkte gefunden.');
+  const raw = nodes.map(n=>{
+    const e = n.getElementsByTagName('ele')[0];
+    return [parseFloat(n.getAttribute('lat')), parseFloat(n.getAttribute('lon')), e? parseFloat(e.textContent) : null];
+  }).filter(p=>!isNaN(p[0])&&!isNaN(p[1]));
+  return buildRoute(raw, name);
+}
+const _cum = new WeakMap();
+function cumUp(route){
+  if(_cum.has(route)) return _cum.get(route);
+  const p=route.pts, c=new Array(p.length); c[0]=0;
+  for(let i=1;i<p.length;i++) c[i]=c[i-1]+Math.max(0,p[i][1]-p[i-1][1]);
+  _cum.set(route,c); return c;
+}
+function idxAt(pts, km){ // grösster Index mit pts[i][0] <= km
+  let lo=0, hi=pts.length-1;
+  if(km<=pts[0][0]) return 0;
+  if(km>=pts[hi][0]) return hi;
+  while(lo<hi){ const mid=(lo+hi+1)>>1; if(pts[mid][0]<=km) lo=mid; else hi=mid-1; }
+  return lo;
+}
+function eleAt(route, km){
+  if(!route) return 0;
+  const p=route.pts, i=idxAt(p,km);
+  if(i>=p.length-1) return p[p.length-1][1];
+  const a=p[i], b=p[i+1], f=(km-a[0])/((b[0]-a[0])||1);
+  return a[1]+(b[1]-a[1])*Math.max(0,Math.min(1,f));
+}
+function hmBetween(route, a, b){
+  if(!route || b<=a) return 0;
+  const p=route.pts, c=cumUp(route);
+  const ia=idxAt(p,a), ib=idxAt(p,b);
+  if(ia===ib) return Math.max(0, eleAt(route,b)-eleAt(route,a));
+  let hm = c[ib]-c[ia+1];
+  hm += Math.max(0, p[ia+1][1]-eleAt(route,a));
+  hm += Math.max(0, eleAt(route,b)-p[ib][1]);
+  return Math.max(0,hm);
+}
+function snapToRoute(route, lat, lon){
+  let best=null;
+  for(const p of route.pts){
+    const d=haversine(lat,lon,p[2],p[3]);
+    if(!best||d<best.dist) best={km:p[0], dist:d};
+  }
+  return best;
+}
+function isNight(ms){
+  const d=new Date(ms), m=d.getHours()*60+d.getMinutes();
+  return m>=NIGHT_FROM || m<NIGHT_TO;
+}
+/* Fahrt simulieren: von fromKm ab startMs; Stopp bei toKm oder untilMs */
+function walk(route, hmFactor, fromKm, startMs, vEq, feelF, toKm, untilMs){
+  const pts = route && route.pts;
+  const endKm = toKm!=null ? toKm : (pts ? pts[pts.length-1][0] : fromKm+3000);
+  let km=fromKm, t=startMs, ele=eleAt(route,km), hm=0;
+  let i = pts ? idxAt(pts,km)+1 : 0;
+  let guard=0;
+  while(km < endKm-1e-9 && guard++<200000){
+    let nk;
+    if(pts){ nk = i<pts.length ? Math.min(pts[i][0], endKm) : endKm; i++; }
+    else nk = Math.min(endKm, Math.floor(km+1e-9)+1);
+    if(nk<=km) continue;
+    const ne=eleAt(route,nk), dk=nk-km, dh=Math.max(0,ne-ele);
+    const v = vEq*feelF*(isNight(t)?NIGHT_FACTOR:1);
+    const dt = (dk + dh/100*hmFactor)/v*3600e3;
+    if(untilMs!=null && t+dt>untilMs){
+      const f=(untilMs-t)/dt;
+      return {km:km+dk*f, t:untilMs, hm:hm+dh*f};
+    }
+    t+=dt; km=nk; ele=ne; hm+=dh;
+  }
+  return {km, t, hm, end:true};
+}
+function detourMs(detKm, detHm, hmFactor, vEq, feelF, atMs){
+  if(!detKm && !detHm) return 0;
+  const v = vEq*feelF*(isNight(atMs)?NIGHT_FACTOR:1);
+  return ((detKm||0) + (detHm||0)/100*hmFactor)/v*3600e3;
+}
+/* Gemessenes Tempo aus den Einträgen der letzten ~3 h */
+function measuredTempo(ev, nowMs, curKm){
+  const log=(ev.log||[]).filter(e=>e.t<=nowMs-40*60e3 && e.t>=nowMs-3.5*3600e3 && e.km<curKm).sort((a,b)=>a.t-b.t);
+  if(!log.length) return null;
+  const e=log[0], h=(nowMs-e.t)/3600e3, d=curKm-e.km;
+  if(h<=0||d<=0) return null;
+  const raw=d/h;
+  if(raw<4||raw>50) return null;
+  const eq = d + hmBetween(ev.route, e.km, curKm)/100*ev.hmFactor;
+  return {raw, vEq:eq/h, hours:h};
+}
+function tempoFor(ev, nowMs, curKm){
+  const L=ev.lage;
+  if(L.tempoOverride>0) return {vEq:L.tempoOverride, raw:null, src:'manuell'};
+  const m = measuredTempo(ev, nowMs, curKm);
+  if(m) return {vEq:m.vEq, raw:m.raw, src:'gemessen', hours:m.hours};
+  return {vEq:ev.flatSpeed, raw:null, src:'Standard'};
+}
+function parseHHMM(s){
+  if(!s) return null;
+  const m=String(s).trim().match(/^(\d{1,2})[:.h](\d{2})/);
+  if(!m) return null;
+  const h=+m[1], mi=+m[2];
+  if(h>24||mi>59) return null;
+  return h*60+mi;
+}
+function deadlineMs(etaMs, hhmm){
+  const mins=parseHHMM(hhmm); if(mins==null) return null;
+  const d=new Date(etaMs); const eh=d.getHours();
+  const dl=new Date(d.getFullYear(), d.getMonth(), d.getDate(), Math.floor(mins/60), mins%60).getTime();
+  const dh=Math.floor(mins/60);
+  if(dh<6 && eh>=12) return dl+86400e3;
+  if(eh<6 && dh>=12) return dl-86400e3;
+  return dl;
+}
+function refMs(nowMs, hhmm){
+  const mins=parseHHMM(hhmm)??(9*60);
+  const d=new Date(nowMs);
+  let r=new Date(d.getFullYear(),d.getMonth(),d.getDate(),Math.floor(mins/60),mins%60).getTime();
+  while(r < nowMs+6*3600e3) r+=86400e3;
+  return r;
+}
+function lateOk(v){ v=(v||'').toLowerCase(); return v==='ja'||v.startsWith('schl'); }
+function lateAsk(v){ return (v||'').toLowerCase().startsWith('auf'); }
+
+function computeOptions(ev, nowMs){
+  const L=ev.lage, route=ev.route, H=ev.hmFactor;
+  const curKm=+L.km||0;
+  const tp=tempoFor(ev, nowMs, curKm);
+  const feelF=FEEL_FACTOR[(L.feel||3)-1];
+  const limitMs = nowMs + (L.maxRide||4)*3600e3;
+  const reach = walk(route,H,curKm,nowMs,tp.vEq,feelF,null,limitMs);
+  const ref = refMs(nowMs, ev.refTime);
+  const res=[]; let behind=0, noKm=0;
+  for(const a of ev.accs){
+    if(a.km==null||isNaN(a.km)){ noKm++; continue; }
+    if(a.km < curKm-0.2){ behind++; continue; }
+    const w = walk(route,H,curKm,nowMs,tp.vEq,feelF,a.km,null);
+    const det = detourMs(a.detKm,a.detHm,H,tp.vEq,feelF,w.t);
+    const eta = w.t + det;
+    const hm = Math.round(w.hm + (a.detHm||0));
+    const dl = lateOk(a.late) ? null : deadlineMs(eta, a.checkin);
+    const reserve = dl==null ? null : Math.round((dl-eta)/60e3);
+    const start = eta + (L.minSleep||270)*60e3;
+    let posRef = a.km;
+    const back = detourMs(a.detKm, 0, H, tp.vEq, 1, start);
+    if(start+back < ref) posRef = walk(route,H,a.km,start+back,tp.vEq,1,null,ref).km;
+    const status = (ev.status&&ev.status[a.id]) || a.status || 'offen';
+    let cls;
+    if(status==='abgesagt') cls='abgesagt';
+    else if(reserve!=null && reserve<0 && !lateAsk(a.late)) cls='unreachable';
+    else if(eta > limitMs + 15*60e3) cls='overlimit';
+    else if(reserve!=null && reserve<0) cls='ask';
+    else if(reserve!=null && reserve<30) cls='tight';
+    else cls='ok';
+    const feasible = cls==='ok'||cls==='tight'||cls==='ask';
+    const score = posRef + (a.prio==='A'?3:0) - (cls==='tight'?5:0) - (cls==='ask'?8:0);
+    res.push({a, dist:a.km-curKm+(a.detKm||0), hm, eta, reserve, dl, start, posRef, status, cls, feasible, score});
+  }
+  const order={ok:0,tight:0,ask:0,overlimit:1,unreachable:2,abgesagt:3};
+  res.sort((x,y)=> order[x.cls]-order[y.cls] || (x.feasible? y.score-x.score : x.eta-y.eta));
+  const best = res.find(r=>r.feasible && r.cls==='ok') || res.find(r=>r.feasible);
+  if(best){ best.recommended=true; res.splice(res.indexOf(best),1); res.unshift(best); }
+  return {list:res, tp, feelF, reachKm:reach.km, limitMs, ref, behind, noKm, curKm};
+}
+
+/* CSV */
+function parseCSV(text){
+  text=text.replace(/^﻿/,'');
+  const first=text.split(/\r?\n/)[0]||'';
+  const cnt=c=>first.split(c).length-1;
+  const sep = cnt('\t')>cnt(';')&&cnt('\t')>cnt(',') ? '\t' : (cnt(';')>cnt(',') ? ';' : ',');
+  const rows=[]; let row=[], cell='', q=false;
+  for(let i=0;i<text.length;i++){
+    const ch=text[i];
+    if(q){
+      if(ch==='"'){ if(text[i+1]==='"'){cell+='"';i++;} else q=false; }
+      else cell+=ch;
+    } else if(ch==='"') q=true;
+    else if(ch===sep){ row.push(cell); cell=''; }
+    else if(ch==='\n'||ch==='\r'){ if(ch==='\r'&&text[i+1]==='\n') i++; row.push(cell); rows.push(row); row=[]; cell=''; }
+    else cell+=ch;
+  }
+  if(cell!==''||row.length){ row.push(cell); rows.push(row); }
+  return rows.filter(r=>r.some(c=>c.trim()!==''));
+}
+function normH(s){ return String(s).toLowerCase().replace(/ä/g,'a').replace(/ö/g,'o').replace(/ü/g,'u').replace(/[^a-z]/g,''); }
+const COLS = {prio:'prio',name:'name',ort:'ort',routenkm:'km',umwegkm:'detKm',umweghm:'detHm',checkinbis:'checkin',latecheckin:'late',velo:'velo',status:'status',sprache:'lang',telefon:'phone',whatsapp:'wa',mail:'mail',email:'mail',fruhstuck:'breakfast',preisca:'price',preis:'price',koordinatenlink:'coords',koordinaten:'coords',notizen:'notes'};
+function num(s){
+  if(s==null) return null; s=String(s).trim().replace(/['’\s]/g,'');
+  if(s==='') return null;
+  if(s.includes(',')&&!s.includes('.')) s=s.replace(',','.');
+  const n=parseFloat(s); return isNaN(n)?null:n;
+}
+function parseCoords(s){
+  const m=String(s||'').match(/(-?\d{1,2}\.\d{3,})\s*,\s*(-?\d{1,3}\.\d{3,})/);
+  return m? {lat:+m[1], lon:+m[2]} : null;
+}
+function rowsToAccs(rows, route){
+  if(rows.length<2) throw new Error('Keine Datenzeilen gefunden.');
+  const head=rows[0].map(h=>COLS[normH(h)]||null);
+  if(!head.includes('name')) throw new Error('Spalte «Name» fehlt in der Kopfzeile.');
+  const out=[];
+  rows.slice(1).forEach((r,ix)=>{
+    const o={};
+    head.forEach((k,i)=>{ if(k) o[k]=(r[i]||'').trim(); });
+    if(!o.name) return;
+    const a={
+      id:'a'+Date.now().toString(36)+ix, prio:(o.prio||'').toUpperCase().startsWith('A')?'A':((o.prio||'').toUpperCase().startsWith('B')?'B':''),
+      name:o.name, ort:o.ort||'', km:num(o.km), detKm:num(o.detKm), detHm:num(o.detHm),
+      checkin:o.checkin||'', late:o.late||'', velo:o.velo||'', status:(o.status||'offen').toLowerCase(),
+      lang:(o.lang||'').toUpperCase().slice(0,2), phone:o.phone||'', wa:o.wa||'', mail:o.mail||'',
+      breakfast:o.breakfast||'', price:o.price||'', coords:o.coords||'', notes:o.notes||'', kmGuessed:false
+    };
+    const c=parseCoords(a.coords);
+    if(c && route && a.km==null){
+      const s=snapToRoute(route,c.lat,c.lon);
+      a.km=Math.round(s.km*10)/10; a.kmGuessed=true;
+      if(a.detKm==null) a.detKm=Math.round(s.dist*1.3*10)/10;
+    }
+    out.push(a);
+  });
+  return out;
+}
+
+/* Kontakttexte */
+const LANGS = {IT:'Italienisch', DE:'Deutsch', FR:'Französisch', EN:'Englisch'};
+function texts(lang, v){
+  const L = LANGS[lang] ? lang : 'EN';
+  const ph = v.phone ? v.phone : '';
+  const t = {
+    IT:{
+      call:`Buonasera, sono un ciclista in gara. Arrivo verso le ${v.eta}. Avete una camera per stanotte? Posso mettere la bici al sicuro? Grazie!`,
+      subj:`Richiesta camera per stanotte – arrivo in bici verso le ${v.eta}`,
+      mail:[`Buonasera,`,``,`sto partecipando a una gara di ultraciclismo (${v.event}) e vorrei chiedere se avete una camera singola per stanotte (${v.date}).`,``,`Arriverò in bici verso le ${v.eta}. È possibile il check-in tardivo o una cassetta per le chiavi? Avete un posto sicuro per la bici?`,``,`Ripartirò molto presto, verso le ${v.start}.`,ph?``:null,ph?`Potete rispondermi anche al ${ph} (anche WhatsApp).`:null,``,`Grazie mille e cordiali saluti`,v.me].filter(x=>x!==null).join('\n'),
+      wa:`Buonasera! Sono un ciclista in gara (${v.event}). Avete una camera per stanotte? Arrivo verso le ${v.eta} e riparto verso le ${v.start}. È possibile il check-in tardivo e un posto sicuro per la bici? Grazie! ${v.me}`.trim()
+    },
+    DE:{
+      call:`Guten Abend, ich bin Radfahrer in einem Rennen. Ich komme gegen ${v.eta} an. Haben Sie ein Zimmer für heute Nacht? Kann ich das Fahrrad sicher abstellen? Danke!`,
+      subj:`Zimmeranfrage für heute Nacht – Ankunft mit dem Fahrrad gegen ${v.eta}`,
+      mail:[`Guten Abend`,``,`ich nehme an einem Ultracycling-Rennen teil (${v.event}) und möchte fragen, ob Sie für heute Nacht (${v.date}) ein Einzelzimmer frei haben.`,``,`Ich komme mit dem Fahrrad gegen ${v.eta} an. Ist ein später Check-in oder ein Schlüsselsafe möglich? Gibt es einen sicheren Platz für das Fahrrad?`,``,`Ich fahre am Morgen sehr früh weiter, gegen ${v.start}.`,ph?``:null,ph?`Sie erreichen mich auch unter ${ph} (auch WhatsApp).`:null,``,`Vielen Dank und freundliche Grüße`,v.me].filter(x=>x!==null).join('\n'),
+      wa:`Guten Abend! Ich bin Radfahrer in einem Rennen (${v.event}). Haben Sie heute Nacht ein Zimmer frei? Ankunft gegen ${v.eta}, Abfahrt gegen ${v.start}. Ist ein später Check-in und ein sicherer Platz fürs Fahrrad möglich? Danke! ${v.me}`.trim()
+    },
+    FR:{
+      call:`Bonsoir, je suis un cycliste en course. J'arrive vers ${v.eta}. Avez-vous une chambre pour cette nuit ? Est-ce que je peux mettre mon vélo en sécurité ? Merci !`,
+      subj:`Demande de chambre pour cette nuit – arrivée à vélo vers ${v.eta}`,
+      mail:[`Bonsoir,`,``,`je participe à une course d'ultracyclisme (${v.event}) et je voudrais savoir si vous avez une chambre simple pour cette nuit (${v.date}).`,``,`J'arriverai à vélo vers ${v.eta}. Un check-in tardif ou une boîte à clés est-il possible ? Avez-vous un endroit sûr pour le vélo ?`,``,`Je repartirai très tôt, vers ${v.start}.`,ph?``:null,ph?`Vous pouvez aussi me joindre au ${ph} (aussi WhatsApp).`:null,``,`Merci beaucoup et meilleures salutations`,v.me].filter(x=>x!==null).join('\n'),
+      wa:`Bonsoir ! Je suis un cycliste en course (${v.event}). Avez-vous une chambre pour cette nuit ? J'arrive vers ${v.eta} et je repars vers ${v.start}. Check-in tardif et vélo en sécurité possibles ? Merci ! ${v.me}`.trim()
+    },
+    EN:{
+      call:`Good evening, I'm a cyclist in a race. I'll arrive around ${v.eta}. Do you have a room for tonight? Can I store my bike safely? Thank you!`,
+      subj:`Room request for tonight – arriving by bike around ${v.eta}`,
+      mail:[`Good evening,`,``,`I'm taking part in an ultra-cycling race (${v.event}) and would like to ask whether you have a single room available for tonight (${v.date}).`,``,`I'll arrive by bike around ${v.eta}. Is a late check-in or a key box possible? Is there a safe place for the bike?`,``,`I'll leave very early, around ${v.start}.`,ph?``:null,ph?`You can also reach me at ${ph} (WhatsApp too).`:null,``,`Many thanks and kind regards`,v.me].filter(x=>x!==null).join('\n'),
+      wa:`Good evening! I'm a cyclist in a race (${v.event}). Do you have a room for tonight? Arriving around ${v.eta}, leaving around ${v.start}. Late check-in and a safe spot for the bike possible? Thanks! ${v.me}`.trim()
+    }
+  };
+  return Object.assign({lang:L, de:t.DE.call}, t[L]);
+}
+function waNumber(s){
+  let d=String(s||'').replace(/[^\d+]/g,'');
+  if(d.startsWith('+')) d=d.slice(1); else if(d.startsWith('00')) d=d.slice(2);
+  return d.length>=8 ? d : '';
+}
+
+/* Demo */
+function demoEvent(now){
+  const raw=[]; const steps=2400;
+  for(let i=0;i<=steps;i++){
+    const km=i*0.5;
+    const ele = 450 + 1100*Math.max(0,Math.sin(km/41))**3 + 180*Math.sin(km/9) + 120*Math.sin(km/3.7);
+    raw.push([48.13 - km*0.0089, 11.57 + km*0.0009, ele]);
+  }
+  const route=buildRoute(raw,'Demo-Route (künstlich)');
+  const d=new Date(now);
+  const start=new Date(d.getFullYear(),d.getMonth(),d.getDate()-2);
+  const mk=(prio,name,ort,km,detKm,detHm,checkin,late,velo,lang,extra)=>Object.assign({id:'d'+name.replace(/\W/g,''),prio,name,ort,km,detKm,detHm,checkin,late,velo,status:'offen',lang,phone:'+39 0000 000000',wa:'',mail:'demo@example.com',breakfast:'',price:'',coords:'',notes:'',kmGuessed:false},extra||{});
+  const accs=[
+    mk('A','Gasthof Demo 1','Ort 1',255,0.3,10,'22:00','nein','drinnen','DE'),
+    mk('B','Pension Demo 2','Ort 2',290,1.0,40,'21:00','auf Anfrage','unklar','DE'),
+    mk('A','Hotel Demo 3','Ort 3',318,0.5,0,'23:00','Schlüsselbox','drinnen','DE'),
+    mk('B','Gasthof Demo 4','Ort 4',577,0.2,0,'23:00','nein','gesichert draussen','IT',{notes:'Rezeption nur bis 23 Uhr'}),
+    mk('A','Albergo Demo 5','Ort 5',598,1.2,60,'22:00','nein','drinnen','IT',{breakfast:'ab 7:00'}),
+    mk('A','Pensione Demo 6','Ort 6',612,0.4,20,'','Schlüsselbox','drinnen','IT',{breakfast:'Frühstückstasche'}),
+    mk('B','B&B Demo 7','Ort 7',631,2.5,180,'21:30','auf Anfrage','unklar','IT'),
+    mk('A','Rifugio Demo 8','Ort 8',655,0,0,'21:00','nein','gesichert draussen','IT'),
+    mk('A','Hotel Demo 9','Ort 9',880,0.6,30,'23:30','ja','drinnen','IT'),
+    mk('B','Albergo Demo 10','Ort 10',915,0.3,0,'22:00','Schlüsselbox','drinnen','IT'),
+  ];
+  const lageT=new Date(d.getFullYear(),d.getMonth(),d.getDate(),19,40).getTime();
+  return {
+    id:'demo', name:'Demo / Testdaten', startDate:fmtDateISO(start), startTime:'06:00',
+    minSleep:270, flatSpeed:24, hmFactor:1.0, refTime:'09:00', myName:'', myPhone:'',
+    route, accs, status:{}, bookedId:null,
+    log:[{t:lageT-3*3600e3, km:500},{t:lageT-1.5*3600e3, km:533}],
+    lage:{km:560, time:toLocalInput(lageT), feel:3, minSleep:270, maxRide:4, tempoOverride:null}
+  };
+}
+function pad(n){return String(n).padStart(2,'0');}
+function fmtDateISO(d){ d=new Date(d); return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate()); }
+function toLocalInput(ms){ const d=new Date(ms); return fmtDateISO(d)+'T'+pad(d.getHours())+':'+pad(d.getMinutes()); }
+function fromLocalInput(s){ const m=String(s||'').match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/); return m? new Date(+m[1],+m[2]-1,+m[3],+m[4],+m[5]).getTime() : Date.now(); }
+/* ===== END LOGIC ===== */
+</script>
+
+<script>
+/* ===== APP / UI ===== */
+const LS_KEY='schlafplatz-finder-v1';
+let mem=null;
+function loadStore(){
+  try{ const s=localStorage.getItem(LS_KEY); if(s) return JSON.parse(s); }catch(e){}
+  return mem || null;
+}
+function saveStore(){
+  mem=store;
+  try{ localStorage.setItem(LS_KEY, JSON.stringify(store)); }
+  catch(e){ if(!saveStore.warned){ saveStore.warned=true; toast('Speichern im Browser nicht möglich – Daten bleiben nur bis zum Schliessen.'); } }
+}
+function newEvent(name, startDate){
+  return {id:'e'+Date.now().toString(36), name, startDate:startDate||'', startTime:'', minSleep:270, flatSpeed:24, hmFactor:1.0, refTime:'09:00', myName:'', myPhone:'',
+    route:null, accs:[], status:{}, bookedId:null, log:[], lage:{km:0, time:toLocalInput(Date.now()), feel:3, minSleep:270, maxRide:4, tempoOverride:null}};
+}
+let store = loadStore();
+if(!store || !store.events || !store.events.length){
+  store={events:[newEvent('Monaco di Baviera Classic 2027','2027-06-19')], currentId:null};
+  store.currentId=store.events[0].id;
+}
+const off={ready:false, update:null, standalone:(window.matchMedia&&matchMedia('(display-mode: standalone)').matches)||navigator.standalone===true, persisted:null, supported:('serviceWorker' in navigator)};
+const ui={view: store.events.find(e=>e.id===store.currentId)?.route ? 'lage' : 'setup', detailId:null, newEvent:false, confirmDelete:false};
+function ev(){ return store.events.find(e=>e.id===store.currentId) || store.events[0]; }
+
+function esc(s){ return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function hm(ms, refMs){
+  const d=new Date(ms); let s=pad(d.getHours())+':'+pad(d.getMinutes());
+  if(refMs!=null){
+    const a=new Date(refMs); const dd=Math.round((new Date(d.getFullYear(),d.getMonth(),d.getDate())-new Date(a.getFullYear(),a.getMonth(),a.getDate()))/86400e3);
+    if(dd>0) s+=` <span class="muted tiny">+${dd}</span>`;
+  }
+  return s;
+}
+function hmPlain(ms){ const d=new Date(ms); return pad(d.getHours())+':'+pad(d.getMinutes()); }
+function dur(min){ min=Math.round(min); const s=min<0?'−':''; min=Math.abs(min); const h=Math.floor(min/60), m=min%60; return s+(h? h+' h '+pad(m) : m+' min'); }
+function fmtKm(x){ return (Math.round(x*10)/10).toLocaleString('de-CH',{maximumFractionDigits:1}); }
+function fmtInt(x){ return Math.round(x).toLocaleString('de-CH'); }
+function dateCH(ms){ const d=new Date(ms); return pad(d.getDate())+'.'+pad(d.getMonth()+1)+'.'+d.getFullYear(); }
+function raceDay(e, ms){
+  if(!e.startDate) return null;
+  const [y,m,d]=e.startDate.split('-').map(Number); const s=new Date(y,m-1,d).getTime();
+  const x=new Date(ms); const day=Math.floor((new Date(x.getFullYear(),x.getMonth(),x.getDate()).getTime()-s)/86400e3)+1;
+  return day>=1 ? day : null;
+}
+let toastT=null;
+function toast(msg){ const t=document.getElementById('toast'); t.textContent=msg; t.hidden=false; clearTimeout(toastT); toastT=setTimeout(()=>t.hidden=true, 3800); }
+
+const ICON={
+  back:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>',
+  pin:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg>',
+  list:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 6h13M8 12h13M8 18h13M3.5 6h.01M3.5 12h.01M3.5 18h.01"/></svg>',
+  bed:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 18V6M3 13h18v5M21 13a3 3 0 0 0-3-3h-7v3"/><circle cx="7" cy="10.5" r="1.5"/></svg>',
+  gear:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>',
+  phone:'<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.4 1.8.7 2.7a2 2 0 0 1-.5 2.1L8 9.8a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.7.7a2 2 0 0 1 1.7 2z"/></svg>',
+  chat:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 11.5a8.4 8.4 0 0 1-12.4 7.4L3 21l2.1-5.6A8.4 8.4 0 1 1 21 11.5z"/></svg>',
+  mail:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg>',
+  gps:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>'
+};
+
+function renderTabs(){
+  const e=ev(); const tabs=[['lage','Lage',ICON.pin],['optionen','Optionen',ICON.list],['gebucht','Gebucht',ICON.bed],['setup','Setup',ICON.gear]];
+  const cur = ui.view==='detail' ? 'optionen' : ui.view;
+  document.getElementById('tabs').innerHTML='<div class="in">'+tabs.map(([k,l,i])=>`<button data-a="go" data-v="${k}" ${cur===k?'aria-current="page"':''}>${i}<span>${l}${k==='gebucht'&&e.bookedId?' •':''}</span></button>`).join('')+'</div>';
+}
+function render(){
+  const app=document.getElementById('app');
+  const v=ui.view;
+  app.innerHTML = v==='setup'? viewSetup() : v==='lage'? viewLage() : v==='optionen'? viewOptionen() : v==='detail'? viewDetail() : viewGebucht();
+  renderTabs();
+}
+
+/* ---- Setup ---- */
+function viewSetup(){
+  const e=ev();
+  const evs=store.events.map(x=>`<label class="ev ${x.id===e.id?'on':''}"><input type="radio" name="event" data-a="pickEvent" data-id="${esc(x.id)}" ${x.id===e.id?'checked':''}><div class="stack" style="gap:4px"><span style="font-size:17px;font-weight:600">${esc(x.name)}</span><span class="small muted">Route: ${x.route? fmtKm(x.route.totalKm)+' km · '+fmtInt(x.route.totalHm)+' Hm' : 'noch nicht geladen'} · Unterkünfte: ${x.accs.length}</span></div></label>`).join('');
+  return `<div class="stack">
+  <div class="stack" style="gap:4px"><div class="eyebrow">Setup</div><h1>Welches Rennen?</h1></div>
+  <div class="stack" style="gap:10px">${evs}
+    ${ui.newEvent ? `<div class="card"><label class="f">Name des Events<input id="newEvName" type="text" autocomplete="off"></label><div class="grid2"><button class="btn" data-a="newEvCancel">Abbrechen</button><button class="btn" style="border-color:var(--accent);color:var(--accent)" data-a="newEvSave">Anlegen</button></div></div>`
+      : `<div class="grid2"><button class="btn ghost" data-a="newEv">+ Event</button><button class="btn ghost" data-a="demo">Demo-Event</button></div>`}
+  </div>
+  <div class="card">
+    <label class="f">Name<input type="text" data-f="name" value="${esc(e.name)}"></label>
+    <div class="grid2">
+      <label class="f">Startdatum<input type="date" data-f="startDate" value="${esc(e.startDate)}"></label>
+      <label class="f">Startzeit<input type="time" data-f="startTime" value="${esc(e.startTime)}"></label>
+    </div>
+  </div>
+  <div class="card">
+    <div class="between"><h2>Route (GPX)</h2><span class="small ${e.route?'good':'muted'}">${e.route? fmtKm(e.route.totalKm)+' km · '+fmtInt(e.route.totalHm)+' Hm' : 'fehlt'}</span></div>
+    ${e.route? `<span class="small muted">${esc(e.route.name)}${e.route.hasEle?'':' · ohne Höhendaten'}</span>`:''}
+    <label class="f"><span class="sr">GPX-Datei wählen</span><input type="file" accept=".gpx,application/gpx+xml,application/xml,text/xml" data-a="gpx"></label>
+  </div>
+  <div class="card">
+    <div class="between"><h2>Unterkünfte</h2><span class="small ${e.accs.length?'good':'muted'}">${e.accs.length} erfasst</span></div>
+    <span class="small muted">CSV aus deiner Tabelle (Download als CSV) wählen oder den Inhalt einfügen. Bestehende Einträge werden ersetzt, Status-Änderungen aus dem Rennen bleiben erhalten.</span>
+    <label class="f"><span class="sr">CSV-Datei wählen</span><input type="file" accept=".csv,text/csv,text/plain" data-a="csv"></label>
+    <details><summary>Stattdessen Text einfügen</summary><div class="stack" style="gap:8px"><textarea id="csvText" placeholder="Prio;Name;Ort;Routen-km;…"></textarea><button class="btn sm" data-a="csvPaste">Importieren</button></div></details>
+    ${e.accs.some(a=>a.km==null)?`<span class="small warn">${e.accs.filter(a=>a.km==null).length} ohne Routen-km – Koordinaten ergänzen oder Route zuerst laden.</span>`:''}
+    ${e.accs.some(a=>a.kmGuessed)?`<span class="small muted">${e.accs.filter(a=>a.kmGuessed).length} Positionen aus Koordinaten berechnet (Umweg geschätzt).</span>`:''}
+  </div>
+  <div class="card" style="gap:0;padding:4px 16px">
+    ${numRow('Mindestschlaf (Standard)','minSleep', dur(e.minSleep), 'minSleep')}
+    ${numRow('Grundtempo flach (km/h)','flatSpeed', fmtKm(e.flatSpeed), 'flatSpeed')}
+    ${numRow('100 Hm zählen wie … km','hmFactor', fmtKm(e.hmFactor), 'hmFactor')}
+    <div class="list-row"><label for="refTime" style="font-size:15px">Vergleich: Position morgen um</label><input id="refTime" type="time" data-f="refTime" value="${esc(e.refTime)}" style="width:132px"></div>
+  </div>
+  <div class="card">
+    <h2>Für die Kontakttexte</h2>
+    <label class="f">Dein Name<input type="text" data-f="myName" value="${esc(e.myName)}" autocomplete="name"></label>
+    <label class="f">Deine Telefonnummer<input type="tel" data-f="myPhone" value="${esc(e.myPhone)}" autocomplete="tel" placeholder="+41 79 …"></label>
+  </div>
+  <div class="card">
+    <div class="between"><h2>Offline</h2><span class="small ${off.ready?'good':'warn'}">${off.ready?'bereit':'nicht bereit'}</span></div>
+    <span class="small muted">${off.ready
+      ? 'Die App ist gespeichert und startet auch ohne Netz.'+(off.standalone?'':' Für den Einsatz: in Safari «Teilen → Zum Home-Bildschirm».')+(off.persisted===false?' Der Browser garantiert die Datenspeicherung nicht – vor dem Rennen eine Sicherung exportieren.':'')
+      : (off.supported ? 'Wird beim ersten Laden über deine eigene Webadresse eingerichtet. Danach einmal neu laden.' : 'In dieser Ansicht nicht möglich. Öffne die App über deine eigene Webadresse (z. B. GitHub Pages).')}</span>
+    ${off.update?'<button class="btn sm" style="color:var(--accent)" data-a="swUpdate">Neue Version laden</button>':''}
+  </div>
+  <div class="card">
+    <h2>Daten</h2>
+    <span class="small muted">Alles wird nur in diesem Browser gespeichert. Vor dem Rennen eine Sicherung exportieren.</span>
+    <div class="grid2"><button class="btn sm" data-a="export">Exportieren</button><button class="btn sm" data-a="copyExport">Als Text kopieren</button></div><div class="grid2"><label class="btn sm" style="cursor:pointer">Importieren<input type="file" accept=".json,application/json" data-a="importJson" class="sr"></label></div>
+    ${ui.confirmDelete ? `<button class="btn sm" style="color:var(--bad);border-color:var(--bad)" data-a="delEvYes">Wirklich «${esc(e.name)}» löschen?</button>` : `<button class="btn sm" style="color:var(--bad)" data-a="delEv">Event löschen</button>`}
+  </div>
+  <button class="btn primary" data-a="go" data-v="lage">Weiter zur Lage</button>
+  </div>`;
+}
+function numRow(label, key, shown, k){
+  return `<div class="list-row"><span style="font-size:15px">${label}</span><div class="row"><button class="sq" style="width:40px;height:40px" aria-label="${label} verringern" data-a="setStep" data-k="${k}" data-d="-1">−</button><span style="min-width:62px;text-align:center;font-weight:600">${shown}</span><button class="sq" style="width:40px;height:40px" aria-label="${label} erhöhen" data-a="setStep" data-k="${k}" data-d="1">+</button></div></div>`;
+}
+
+/* ---- Lage ---- */
+function viewLage(){
+  const e=ev(), L=e.lage;
+  const now=fromLocalInput(L.time);
+  const day=raceDay(e,now);
+  const tp=tempoFor(e, now, +L.km||0);
+  const lastLogs=(e.log||[]).slice().sort((a,b)=>b.t-a.t).slice(0,3);
+  return `<div class="stack">
+  <div class="stack" style="gap:4px"><div class="eyebrow">${esc(e.name)}${day?' · Tag '+day:''}</div><h1>Wo schlafe ich heute?</h1></div>
+  ${!e.accs.length?`<div class="note">Noch keine Unterkünfte erfasst. Im Setup importieren – oder ein Demo-Event anlegen.</div>`:''}
+  <div class="card">
+    <div class="between"><span class="small muted">Position</span>
+      <button class="btn sm" data-a="gps" ${e.route?'':'disabled'} style="color:var(--good)">${ICON.gps} GPS</button></div>
+    <div class="grid2">
+      <label class="f">Routen-km<input type="number" inputmode="decimal" step="0.1" data-l="km" value="${esc(L.km)}" style="font-size:28px;font-weight:700;min-height:58px"></label>
+      <label class="f">Uhrzeit<input type="datetime-local" data-l="time" value="${esc(L.time)}" style="font-size:15px;min-height:58px"></label>
+    </div>
+    <button class="btn sm" data-a="now">Uhrzeit auf jetzt setzen</button>
+  </div>
+  <div class="card">
+    <span class="small muted" id="feelLbl">Wie fühlst du dich?</span>
+    <div class="grid5" role="group" aria-labelledby="feelLbl">${[1,2,3,4,5].map(n=>`<button class="feel" data-a="feel" data-n="${n}" aria-pressed="${L.feel===n}">${n}</button>`).join('')}</div>
+    <div class="between tiny muted"><span>leer</span><span>frisch</span></div>
+  </div>
+  <div class="card">
+    <div class="between"><div class="stat"><span class="l" style="font-size:13px">Heute noch fahren, max.</span><span class="v" style="font-size:22px">${dur(L.maxRide*60)}</span></div>
+      <div class="row"><button class="sq" aria-label="Weniger" data-a="lStep" data-k="maxRide" data-d="-1">−</button><button class="sq" aria-label="Mehr" data-a="lStep" data-k="maxRide" data-d="1">+</button></div></div>
+    <div style="height:1px;background:var(--line)"></div>
+    <div class="between"><div class="stat"><span class="l" style="font-size:13px">Mindestschlaf</span><span class="v" style="font-size:22px">${dur(L.minSleep)}</span></div>
+      <div class="row"><button class="sq" aria-label="Weniger Schlaf" data-a="lStep" data-k="minSleep" data-d="-1">−</button><button class="sq" aria-label="Mehr Schlaf" data-a="lStep" data-k="minSleep" data-d="1">+</button></div></div>
+    <span class="small muted">Start morgen = Ankunft + Mindestschlaf</span>
+  </div>
+  <div class="card">
+    <div class="between"><span class="small muted">Tempo</span><span class="small muted">${tp.src}</span></div>
+    <div class="small soft">${tp.src==='gemessen' ? `${fmtKm(tp.raw)} km/h in den letzten ${dur(tp.hours*60)} → flach gerechnet ${fmtKm(tp.vEq)} km/h` : tp.src==='manuell' ? `${fmtKm(tp.vEq)} km/h flach (manuell gesetzt)` : `${fmtKm(tp.vEq)} km/h flach (Standard aus dem Setup – wird gemessen, sobald du Einträge hast)`}. Nachts ab 21:30 −12 %.</div>
+    <label class="f">Tempo manuell (km/h flach, leer = automatisch)<input type="number" inputmode="decimal" step="0.5" data-l="tempoOverride" value="${L.tempoOverride?esc(L.tempoOverride):''}"></label>
+    ${lastLogs.length?`<details><summary>Letzte Einträge (${(e.log||[]).length})</summary><div class="stack" style="gap:6px">${lastLogs.map(x=>`<div class="between small"><span>${dateCH(x.t)} ${hmPlain(x.t)} · km ${fmtKm(x.km)}</span><button class="btn sm" style="min-height:36px" data-a="delLog" data-t="${x.t}">Löschen</button></div>`).join('')}</div></details>`:''}
+  </div>
+  <button class="btn primary" data-a="calc">Unterkünfte berechnen</button>
+  </div>`;
+}
+
+/* ---- Optionen ---- */
+let lastCalc=null;
+function viewOptionen(){
+  const e=ev(), L=e.lage, now=fromLocalInput(L.time);
+  const c=computeOptions(e, now); lastCalc=c;
+  const feas=c.list.filter(r=>r.feasible).length;
+  const cards=c.list.map(r=>optCard(r, now, c)).join('');
+  return `<div class="stack">
+    <div class="row"><button class="back" aria-label="Zurück zur Lage" data-a="go" data-v="lage" style="color:var(--text)">${ICON.back}</button>
+      <div class="stack" style="gap:2px"><h1 style="font-size:24px">${feas} ${feas===1?'Option':'Optionen'}</h1><span class="small muted">ab km ${fmtKm(c.curKm)} · ${hmPlain(now)} · Gefühl ${L.feel} · ${dur(L.minSleep)} Schlaf</span></div></div>
+    <div class="note">Realistisch heute noch bis ca. <strong style="color:var(--text)">km ${fmtKm(c.reachKm)}</strong> (${dur(L.maxRide*60)} Fahrzeit, ${fmtKm(c.tp.vEq)} km/h flach, Höhenmeter und Nacht eingerechnet). «Morgen» = Position um ${hmPlain(c.ref)}.</div>
+    ${cards || `<div class="note">Keine Unterkünfte vor dir.${!e.accs.length?' Im Setup welche importieren.':''}</div>`}
+    ${c.behind||c.noKm?`<span class="small muted">${c.behind?c.behind+' bereits hinter dir':''}${c.behind&&c.noKm?' · ':''}${c.noKm?c.noKm+' ohne Routen-km':''}</span>`:''}
+  </div>`;
+}
+function badge(r){
+  if(r.status==='gebucht') return '<span class="pill p-good">Gebucht</span>';
+  if(r.recommended) return '<span class="pill p-accent">Empfohlen</span>';
+  return {ok:'<span class="pill">Möglich</span>', tight:'<span class="pill p-warn">Knapp</span>', ask:'<span class="pill p-warn">Nur nach Absprache</span>', overlimit:'<span class="pill">Über deinem Limit</span>', unreachable:'<span class="pill p-bad">Nicht erreichbar</span>', abgesagt:'<span class="pill p-bad">Abgesagt</span>'}[r.cls];
+}
+function optCard(r, now, c){
+  const a=r.a;
+  const right = [a.prio, lateOk(a.late)? (a.late.toLowerCase().startsWith('schl')?'Schlüsselbox':'Late Check-in') : (a.checkin? 'Check-in bis '+esc(a.checkin) : 'Check-in ?')].filter(Boolean).join(' · ');
+  if(r.cls==='unreachable'||r.cls==='abgesagt'){
+    return `<button class="opt card dim" data-a="detail" data-id="${esc(a.id)}"><div class="between"><div class="stack" style="gap:2px"><span style="font-size:15px;font-weight:600" class="muted">${esc(a.name)}</span><span class="tiny muted">+${fmtKm(r.dist)} km · Ankunft ${hm(r.eta,now)} · ${right}</span></div>${badge(r)}</div></button>`;
+  }
+  const resTxt = r.reserve==null ? '<span class="good">keine Frist</span>' : r.reserve<0 ? `<span class="bad">${dur(r.reserve)}</span>` : `<span class="${r.reserve<30?'warn':'good'}">${dur(r.reserve)}</span>`;
+  const gain = r.posRef - c.curKm;
+  return `<button class="opt card ${r.recommended?'hl':''}" data-a="detail" data-id="${esc(a.id)}">
+    <div class="between">${badge(r)}<span class="small muted">${right}</span></div>
+    <div class="stack" style="gap:2px"><span style="font-size:18px;font-weight:600">${esc(a.name)}</span><span class="small muted">${a.ort?esc(a.ort)+' · ':''}+${fmtKm(r.dist)} km · ${fmtInt(r.hm)} Hm${a.detKm?' · Umweg '+fmtKm(a.detKm)+' km':''}</span></div>
+    <div class="grid3">
+      <div class="stat"><span class="l">Ankunft</span><span class="v">${hm(r.eta,now)}</span></div>
+      <div class="stat"><span class="l">Reserve</span><span class="v">${resTxt}</span></div>
+      <div class="stat"><span class="l">Start morgen</span><span class="v">${hm(r.start,now)}</span></div>
+    </div>
+    <span class="small soft">Um ${hmPlain(c.ref)} bei km ${fmtKm(r.posRef)}${r.cls==='overlimit'?' · '+dur((r.eta-c.limitMs)/60e3)+' über deinem Limit':''}</span>
+  </button>`;
+}
+
+/* ---- Detail ---- */
+function findCalc(id){
+  const e=ev(), now=fromLocalInput(e.lage.time);
+  const c=computeOptions(e, now);
+  return {c, r:c.list.find(x=>x.a.id===id), now};
+}
+function contactVars(e, r){
+  return {eta:hmPlain(r.eta), start:hmPlain(r.start), event:e.name, date:dateCH(r.eta - (new Date(r.eta).getHours()<6?86400e3:0)), me:e.myName||'', phone:e.myPhone||''};
+}
+function viewDetail(){
+  const e=ev(); const {r, now, c}=findCalc(ui.detailId);
+  if(!r){ return `<div class="stack"><div class="row"><button class="back" aria-label="Zurück" data-a="go" data-v="optionen" style="color:var(--text)">${ICON.back}</button><h1 style="font-size:22px">Nicht gefunden</h1></div><div class="note">Diese Unterkunft liegt nicht mehr vor dir.</div></div>`; }
+  const a=r.a, T=texts(a.lang, contactVars(e,r));
+  const tel = a.phone ? 'tel:'+a.phone.replace(/[^\d+]/g,'') : '';
+  const wa = waNumber(a.wa||a.phone) ? 'https://wa.me/'+waNumber(a.wa||a.phone)+'?text='+encodeURIComponent(T.wa) : '';
+  const mail = a.mail ? 'mailto:'+encodeURIComponent(a.mail).replace(/%40/g,'@')+'?subject='+encodeURIComponent(T.subj)+'&body='+encodeURIComponent(T.mail) : '';
+  const link = /^https?:\/\//i.test(a.coords) ? a.coords : '';
+  const checkinTxt = lateOk(a.late) ? `<span class="good">${esc(a.late.toLowerCase().startsWith('schl')?'Schlüsselbox':'Late Check-in')}</span>` : (a.checkin? `bis ${esc(a.checkin)}`+(r.reserve!=null?` <span class="tiny ${r.reserve<0?'bad':r.reserve<30?'warn':'good'}">(${r.reserve<0?'':'+'}${dur(r.reserve)})</span>`:'') : '<span class="muted">unbekannt</span>');
+  const st=r.status;
+  return `<div class="stack">
+    <div class="row"><button class="back" aria-label="Zurück zu den Optionen" data-a="go" data-v="optionen" style="color:var(--text)">${ICON.back}</button>
+      <div class="stack" style="gap:2px;min-width:0"><h1 style="font-size:22px">${esc(a.name)}</h1><span class="small muted">${a.ort?esc(a.ort)+' · ':''}${LANGS[T.lang]} · Status: ${esc(st)}</span></div></div>
+    ${r.cls!=='ok'?`<div>${badge(r)}</div>`:''}
+    <div class="grid2">
+      <div class="tile stat"><span class="l">Ankunft</span><span class="v" style="font-size:22px">${hm(r.eta,now)}</span></div>
+      <div class="tile stat"><span class="l">Start morgen</span><span class="v" style="font-size:22px">${hm(r.start,now)}</span></div>
+      <div class="tile stat"><span class="l">Check-in</span><span class="v" style="font-size:16px">${checkinTxt}</span></div>
+      <div class="tile stat"><span class="l">Velo</span><span class="v" style="font-size:16px">${esc(a.velo||'unklar')}</span></div>
+      <div class="tile stat"><span class="l">Bis dort</span><span class="v" style="font-size:16px">${fmtKm(r.dist)} km · ${fmtInt(r.hm)} Hm</span></div>
+      <div class="tile stat"><span class="l">Morgen um ${hmPlain(c.ref)}</span><span class="v" style="font-size:16px">km ${fmtKm(r.posRef)}</span></div>
+    </div>
+    ${(a.breakfast||a.price||a.notes||link)?`<div class="note">${[a.breakfast?'Frühstück: '+esc(a.breakfast):'', a.price?'Preis ca. '+esc(a.price)+' €':'', a.notes?esc(a.notes):'', link?`<a href="${esc(link)}" target="_blank" rel="noopener">Karte / Website öffnen</a>`:''].filter(Boolean).join('<br>')}</div>`:''}
+    <div class="stack" style="gap:10px">
+      <a class="btn primary" ${tel?`href="${esc(tel)}"`:'aria-disabled="true"'} style="color:#0E1114">${ICON.phone} Anrufen</a>
+      <div class="grid2">
+        <a class="btn" ${wa?`href="${esc(wa)}" target="_blank" rel="noopener"`:'aria-disabled="true"'}>${ICON.chat} WhatsApp</a>
+        <a class="btn" ${mail?`href="${esc(mail)}"`:'aria-disabled="true"'}>${ICON.mail} Mail</a>
+      </div>
+      ${!a.phone&&!a.mail?'<span class="small muted">Keine Kontaktdaten erfasst.</span>':`<span class="small muted">${[a.phone?esc(a.phone):'',a.mail?esc(a.mail):''].filter(Boolean).join(' · ')}</span>`}
+      ${a.mail?`<button class="btn sm" data-a="copyMail">Mailtext kopieren</button>`:''}
+    </div>
+    <div class="card" style="gap:8px">
+      <span class="eyebrow">Sprechzettel · ${LANGS[T.lang]}</span>
+      <p class="script" lang="${T.lang.toLowerCase()}">${esc(T.call)}</p>
+      ${T.lang!=='DE'?`<p class="small muted" style="margin:0;line-height:1.4">${esc(T.de)}</p>`:''}
+    </div>
+    ${st==='gebucht'
+      ? `<div class="grid2"><button class="btn" data-a="go" data-v="gebucht">Zur Fahrt</button><button class="btn" data-a="status" data-s="offen">Buchung lösen</button></div>`
+      : `<button class="btn outline-good" data-a="status" data-s="gebucht">Als gebucht markieren</button>
+         <div class="grid2"><button class="btn sm" data-a="status" data-s="angefragt" ${st==='angefragt'?'aria-pressed="true" style="border-color:var(--accent)"':''}>Angefragt</button><button class="btn sm" data-a="status" data-s="${st==='abgesagt'?'offen':'abgesagt'}">${st==='abgesagt'?'Absage zurücknehmen':'Abgesagt / voll'}</button></div>`}
+  </div>`;
+}
+
+/* ---- Gebucht ---- */
+function viewGebucht(){
+  const e=ev();
+  if(!e.bookedId) return `<div class="stack"><div class="stack" style="gap:4px"><div class="eyebrow">Gebucht</div><h1>Noch nichts gebucht</h1></div><div class="note">Wähle in den Optionen eine Unterkunft und markiere sie als gebucht. Hier siehst du dann, wie viel noch fehlt und ob die Zeit reicht.</div><button class="btn primary" data-a="go" data-v="optionen">Zu den Optionen</button></div>`;
+  const {r, now}=findCalc(e.bookedId);
+  const a=e.accs.find(x=>x.id===e.bookedId);
+  if(!a) return `<div class="note">Die gebuchte Unterkunft ist nicht mehr in der Liste.</div>`;
+  if(!r) return `<div class="stack"><div class="stack" style="gap:6px"><span class="pill p-good" style="align-self:flex-start">Gebucht</span><h1>${esc(a.name)}</h1></div><div class="note">Du bist schon bei oder hinter dieser Unterkunft (km ${fmtKm(a.km)}). Gute Nacht!</div><button class="btn" data-a="status2" data-id="${esc(a.id)}" data-s="offen">Buchung lösen</button></div>`;
+  const L=e.lage, cur=+L.km||0;
+  let bars='';
+  if(e.route && a.km>cur){
+    const n=30, vals=[]; for(let i=0;i<=n;i++) vals.push(eleAt(e.route, cur+(a.km-cur)*i/n));
+    const mn=Math.min(...vals), mx=Math.max(...vals), span=Math.max(50,mx-mn);
+    bars=`<div class="card" style="gap:10px"><span class="eyebrow">Höhenprofil bis dort · ${fmtInt(mn)}–${fmtInt(mx)} m</span>
+      <div class="profile" role="img" aria-label="Höhenprofil von km ${fmtKm(cur)} bis km ${fmtKm(a.km)}, ${fmtInt(r.hm)} Höhenmeter">${vals.map((v,i)=>`<div style="height:${Math.round(12+88*(v-mn)/span)}%;${i===n?'background:var(--good)':''}"></div>`).join('')}</div>
+      <div class="between tiny muted"><span>km ${fmtKm(cur)}</span><span>km ${fmtKm(a.km)}</span></div></div>`;
+  }
+  const dlTxt = r.reserve==null ? `<div class="between card" style="background:var(--good-bg);flex-direction:row"><span style="color:#C9F0D6">Check-in-Frist</span><span style="font-size:22px;font-weight:700" class="good">keine</span></div>`
+    : `<div class="between card" style="background:${r.reserve<0?'var(--bad-bg)':r.reserve<30?'#3A2E14':'var(--good-bg)'};flex-direction:row"><span>Reserve bis Check-in ${esc(a.checkin)}</span><span style="font-size:24px;font-weight:700" class="${r.reserve<0?'bad':r.reserve<30?'warn':'good'}">${r.reserve<0?'':'+'}${dur(r.reserve)}</span></div>`;
+  return `<div class="stack">
+    <div class="stack" style="gap:6px"><span class="pill p-good" style="align-self:flex-start">Gebucht</span><h1>${esc(a.name)}</h1><span class="small muted">${a.ort?esc(a.ort)+' · ':''}Stand ${hmPlain(now)} bei km ${fmtKm(cur)}</span></div>
+    <div class="card" style="gap:4px"><span class="small muted">Noch bis zur Unterkunft</span><div class="row" style="align-items:baseline"><span class="huge">${fmtKm(r.dist)} km</span><span style="font-size:18px" class="soft">${fmtInt(r.hm)} Hm</span></div></div>
+    <div class="grid2">
+      <div class="tile stat"><span class="l">Ankunft</span><span class="v" style="font-size:22px">${hm(r.eta,now)}</span></div>
+      <div class="tile stat"><span class="l">Start morgen</span><span class="v" style="font-size:22px">${hm(r.start,now)}</span></div>
+    </div>
+    ${dlTxt}
+    ${bars}
+    <div class="grid2"><button class="btn primary" style="font-size:16px" data-a="go" data-v="lage">Lage aktualisieren</button><button class="btn" data-a="detail" data-id="${esc(a.id)}">Kontakt / Plan</button></div>
+  </div>`;
+}
+
+/* ---- Aktionen ---- */
+function setStatus(id, s){
+  const e=ev(); e.status=e.status||{};
+  e.status[id]=s;
+  if(s==='gebucht'){ if(e.bookedId && e.bookedId!==id) e.status[e.bookedId]='offen'; e.bookedId=id; }
+  else if(e.bookedId===id) e.bookedId=null;
+  saveStore();
+}
+const STEP = {
+  minSleep:{d:15,min:60,max:720}, flatSpeed:{d:0.5,min:10,max:45}, hmFactor:{d:0.1,min:0,max:4},
+  maxRide:{d:0.5,min:0.5,max:16}
+};
+function clamp(v,s){ return Math.min(s.max, Math.max(s.min, Math.round(v*100)/100)); }
+
+document.addEventListener('click', ev_=>{
+  const el=ev_.target.closest('[data-a]'); if(!el) return;
+  const a=el.dataset.a, e=ev();
+  if(el.tagName==='INPUT') return; // radio/file handled on change
+  switch(a){
+    case 'go': ui.view=el.dataset.v; ui.confirmDelete=false; render(); window.scrollTo(0,0); break;
+    case 'newEv': ui.newEvent=true; render(); setTimeout(()=>document.getElementById('newEvName')?.focus(),0); break;
+    case 'newEvCancel': ui.newEvent=false; render(); break;
+    case 'newEvSave': {
+      const n=(document.getElementById('newEvName').value||'').trim(); if(!n){ toast('Bitte einen Namen eingeben.'); return; }
+      const x=newEvent(n,''); store.events.push(x); store.currentId=x.id; ui.newEvent=false; saveStore(); render(); break; }
+    case 'demo': {
+      const d=demoEvent(Date.now());
+      store.events=store.events.filter(x=>x.id!=='demo'); store.events.push(d); store.currentId=d.id; saveStore(); ui.view='lage'; render(); toast('Demo-Event mit künstlicher Route geladen.'); break; }
+    case 'setStep': { const k=el.dataset.k, s=STEP[k]; e[k]=clamp(e[k]+s.d*(+el.dataset.d),s); if(k==='minSleep') e.lage.minSleep=e[k]; saveStore(); render(); break; }
+    case 'lStep': { const k=el.dataset.k, s=STEP[k]; e.lage[k]=clamp(e.lage[k]+s.d*(+el.dataset.d),s); saveStore(); render(); break; }
+    case 'feel': { const n=+el.dataset.n; e.lage.feel=n; e.lage.maxRide=FEEL_MAXRIDE[n-1]; saveStore(); render(); break; }
+    case 'now': e.lage.time=toLocalInput(Date.now()); saveStore(); render(); break;
+    case 'gps': doGps(); break;
+    case 'calc': {
+      const t=fromLocalInput(e.lage.time), km=+e.lage.km||0;
+      e.log=(e.log||[]).filter(x=>Math.abs(x.t-t)>5*60e3); e.log.push({t,km}); e.log.sort((x,y)=>x.t-y.t);
+      if(e.log.length>200) e.log=e.log.slice(-200);
+      saveStore(); ui.view=e.bookedId && e.accs.some(x=>x.id===e.bookedId && x.km>km)? 'gebucht':'optionen'; render(); window.scrollTo(0,0); break; }
+    case 'delLog': e.log=e.log.filter(x=>String(x.t)!==el.dataset.t); saveStore(); render(); break;
+    case 'detail': ui.detailId=el.dataset.id; ui.view='detail'; render(); window.scrollTo(0,0); break;
+    case 'status': setStatus(ui.detailId, el.dataset.s); if(el.dataset.s==='gebucht'){ ui.view='gebucht'; window.scrollTo(0,0); toast('Als gebucht markiert.'); } render(); break;
+    case 'status2': setStatus(el.dataset.id, el.dataset.s); render(); break;
+    case 'csvPaste': { const t=document.getElementById('csvText').value; importCsv(t); break; }
+    case 'swUpdate': if(off.update){ off.update.postMessage('skipWaiting'); } break;
+    case 'export': exportJson(); break;
+    case 'copyExport': copyText(JSON.stringify({app:'schlafplatz-finder',v:1,event:e}), 'Sicherung kopiert – z. B. in Notizen einfügen.'); break;
+    case 'copyMail': { const {r}=findCalc(ui.detailId); if(r){ const T=texts(r.a.lang, contactVars(e,r)); copyText(T.subj+'\n\n'+T.mail, 'Betreff und Text kopiert.'); } break; }
+    case 'delEv': ui.confirmDelete=true; render(); break;
+    case 'delEvYes': {
+      store.events=store.events.filter(x=>x.id!==e.id);
+      if(!store.events.length) store.events.push(newEvent('Neues Event',''));
+      store.currentId=store.events[0].id; ui.confirmDelete=false; saveStore(); render(); toast('Event gelöscht.'); break; }
+  }
+});
+document.addEventListener('change', ev_=>{
+  const el=ev_.target, e=ev();
+  if(el.dataset.a==='pickEvent'){ store.currentId=el.dataset.id; ui.confirmDelete=false; saveStore(); render(); return; }
+  if(el.dataset.a==='gpx'){ readFile(el, txt=>{ try{ e.route=parseGPX(txt, el.files[0].name.replace(/\.gpx$/i,'')); relocateAccs(e); saveStore(); render(); toast(`Route geladen: ${fmtKm(e.route.totalKm)} km, ${fmtInt(e.route.totalHm)} Hm.`); }catch(err){ toast(err.message||'GPX konnte nicht gelesen werden.'); } }); return; }
+  if(el.dataset.a==='csv'){ readFile(el, importCsv); return; }
+  if(el.dataset.a==='importJson'){ readFile(el, importJson); return; }
+  if(el.dataset.f){
+    const k=el.dataset.f; e[k]=el.value; saveStore();
+    if(k==='name') render();
+    return;
+  }
+  if(el.dataset.l){
+    const k=el.dataset.l;
+    if(k==='km') e.lage.km = el.value===''? 0 : Math.max(0, parseFloat(el.value)||0);
+    else if(k==='tempoOverride') e.lage.tempoOverride = parseFloat(el.value)>0 ? parseFloat(el.value) : null;
+    else e.lage[k]=el.value;
+    saveStore(); render();
+  }
+});
+function readFile(input, cb){
+  const f=input.files&&input.files[0]; if(!f) return;
+  const r=new FileReader(); r.onload=()=>cb(String(r.result)); r.onerror=()=>toast('Datei konnte nicht gelesen werden.'); r.readAsText(f);
+}
+function relocateAccs(e){
+  for(const a of e.accs){
+    if((a.km==null||a.kmGuessed)){ const c=parseCoords(a.coords); if(c){ const s=snapToRoute(e.route,c.lat,c.lon); a.km=Math.round(s.km*10)/10; a.kmGuessed=true; if(a.detKm==null) a.detKm=Math.round(s.dist*1.3*10)/10; } }
+  }
+}
+function importCsv(text){
+  const e=ev();
+  try{
+    const accs=rowsToAccs(parseCSV(text), e.route);
+    // Status aus dem Rennen nach Name erhalten
+    const old={}; e.accs.forEach(a=>{ if(e.status&&e.status[a.id]) old[a.name+'|'+a.ort]=e.status[a.id]; });
+    const booked = e.bookedId ? e.accs.find(a=>a.id===e.bookedId) : null;
+    e.status={}; e.bookedId=null;
+    accs.forEach(a=>{ const s=old[a.name+'|'+a.ort]; if(s){ e.status[a.id]=s; if(s==='gebucht') e.bookedId=a.id; } });
+    if(booked && !e.bookedId){ const m=accs.find(a=>a.name===booked.name&&a.ort===booked.ort); if(m){ e.status[m.id]='gebucht'; e.bookedId=m.id; } }
+    e.accs=accs; saveStore(); render(); toast(`${accs.length} Unterkünfte importiert.`);
+  }catch(err){ toast(err.message||'Import fehlgeschlagen.'); }
+}
+function copyText(t, okMsg){
+  try{ navigator.clipboard.writeText(t).then(()=>toast(okMsg), ()=>toast('Kopieren nicht erlaubt.')); }catch(err){ toast('Kopieren nicht erlaubt.'); }
+}
+function exportJson(){
+  const e=ev();
+  const blob=new Blob([JSON.stringify({app:'schlafplatz-finder',v:1,event:e})],{type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a'); a.href=url; a.download=(e.name||'event').replace(/[^\w\-]+/g,'_')+'.json';
+  document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(url),2000);
+}
+function importJson(text){
+  try{
+    const d=JSON.parse(text); const x=d.event; if(!x||!x.name||!Array.isArray(x.accs)) throw new Error('Keine gültige Sicherung.');
+    x.id='e'+Date.now().toString(36); store.events.push(x); store.currentId=x.id; saveStore(); render(); toast('Sicherung importiert.');
+  }catch(err){ toast(err.message||'Import fehlgeschlagen.'); }
+}
+function doGps(){
+  const e=ev();
+  if(!navigator.geolocation){ toast('GPS ist hier nicht verfügbar – km bitte von Hand eingeben.'); return; }
+  toast('Suche Position …');
+  navigator.geolocation.getCurrentPosition(p=>{
+    const s=snapToRoute(e.route, p.coords.latitude, p.coords.longitude);
+    e.lage.km=Math.round(s.km*10)/10; e.lage.time=toLocalInput(Date.now()); saveStore(); render();
+    toast(s.dist>2 ? `Achtung: ${fmtKm(s.dist)} km neben der Route. km ${fmtKm(s.km)} übernommen.` : `km ${fmtKm(s.km)} übernommen.`);
+  }, err=>toast('Keine Position: '+(err.code===1?'Zugriff verweigert.':'nicht verfügbar.')+' km bitte von Hand eingeben.'), {enableHighAccuracy:true, timeout:15000, maximumAge:60000});
+}
+
+/* ---- Offline (Service Worker) ---- */
+function setupOffline(){
+  if(!off.supported) return;
+  try{
+    navigator.serviceWorker.register('sw.js').then(reg=>{
+      const markWaiting=w=>{ off.update=w; if(ui.view==='setup') render(); toast('Neue Version verfügbar – im Setup laden.'); };
+      if(reg.waiting && navigator.serviceWorker.controller) markWaiting(reg.waiting);
+      reg.addEventListener('updatefound', ()=>{
+        const w=reg.installing; if(!w) return;
+        w.addEventListener('statechange', ()=>{
+          if(w.state==='installed'){
+            if(navigator.serviceWorker.controller) markWaiting(w);
+            else { off.ready=true; if(ui.view==='setup') render(); }
+          }
+        });
+      });
+      return navigator.serviceWorker.ready;
+    }).then(()=>{ off.ready=true; if(ui.view==='setup') render(); }).catch(()=>{});
+    let reloaded=false; const hadController=!!navigator.serviceWorker.controller;
+    navigator.serviceWorker.addEventListener('controllerchange', ()=>{ if(!hadController){ off.ready=true; return; } if(reloaded) return; reloaded=true; location.reload(); });
+  }catch(e){}
+  try{
+    if(navigator.storage && navigator.storage.persist){
+      navigator.storage.persisted().then(p=> p ? true : navigator.storage.persist()).then(p=>{ off.persisted=!!p; if(ui.view==='setup') render(); }).catch(()=>{});
+    }
+  }catch(e){}
+}
+setupOffline();
+render();
+</script>
+</body>
+</html>
