@@ -192,7 +192,7 @@ function isNight(ms){
 }
 /* Fahrt simulieren: von fromKm ab startMs; Stopp bei toKm oder untilMs */
 /* Leistungsmodell (kalibriert an intervals.icu-Fahrten, siehe claude/schlafplatz-tempomodell.md) */
-const MODEL_DEFAULTS = {power:150, mass:90, pause:10, cda:0.36, crr:0.005, climbK:5, climbMax:40, descDay:50, descNight:35};
+const MODEL_DEFAULTS = {power:150, mass:90, pause:10, cda:0.38, crr:0.005, climbK:4, climbMax:50, descDay:48, descNight:38}; // kalibriert an 19 Fahrten (Nov 2026)
 function modelOf(ev){ const m=Object.assign({}, MODEL_DEFAULTS, ev.model||{}); return m; }
 // Geschwindigkeit in km/h aus Leistung (W) und Steigung (Anteil), Höhe für Luftdichte
 function speedKmh(P, grade, ele, m){
@@ -585,7 +585,7 @@ function modelCard(e){
   const row=(label,k,shown,hint)=>`<div class="list-row"><div class="stack" style="gap:2px;min-width:0"><span style="font-size:15px">${label}</span>${hint?`<span class="tiny muted">${hint}</span>`:''}</div><div class="row"><button class="sq" style="width:40px;height:40px" aria-label="${label} verringern" data-a="mStep" data-k="${k}" data-d="-1">−</button><span style="min-width:62px;text-align:center;font-weight:600">${shown}</span><button class="sq" style="width:40px;height:40px" aria-label="${label} erhöhen" data-a="mStep" data-k="${k}" data-d="1">+</button></div></div>`;
   return `<div class="card" style="gap:4px">
     <h2>Tempomodell</h2>
-    <span class="small muted">Das Tempo wird aus Leistung, Steigung, Gewicht und Luftwiderstand berechnet – kalibriert an deinen Fahrten.</span>
+    <span class="small muted">Das Tempo wird aus Leistung, Steigung, Gewicht und Luftwiderstand berechnet – kalibriert an 19 deiner Fahrten (±3 %).</span>
     <div style="padding-top:4px">
     ${row('Dauerleistung flach','power',m.power+' W','im Rennen, Gefühl 3')}
     ${row('Systemgewicht','mass',m.mass+' kg','Fahrer, Rad, Gepäck, Wasser')}
