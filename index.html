@@ -466,7 +466,7 @@ if(!store || !store.events || !store.events.length){
   store.currentId=store.events[0].id;
 }
 const off={ready:false, update:null, standalone:(window.matchMedia&&matchMedia('(display-mode: standalone)').matches)||navigator.standalone===true, persisted:null, supported:('serviceWorker' in navigator)};
-const ui={kmode:'map', map:null, mapSel:null, back:'optionen', view: store.events.find(e=>e.id===store.currentId)?.route ? 'lage' : 'setup', detailId:null, newEvent:false, confirmDelete:false};
+const ui={timeOverride:store.currentId==='demo', kmode:'map', map:null, mapSel:null, back:'optionen', view: store.events.find(e=>e.id===store.currentId)?.route ? 'lage' : 'setup', detailId:null, newEvent:false, confirmDelete:false};
 function ev(){ return store.events.find(e=>e.id===store.currentId) || store.events[0]; }
 
 function esc(s){ return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
@@ -583,6 +583,7 @@ function numRow(label, key, shown, k){
 /* ---- Lage ---- */
 function viewLage(){
   const e=ev(), L=e.lage;
+  if(!ui.timeOverride) L.time=toLocalInput(Date.now());
   const now=fromLocalInput(L.time);
   const day=raceDay(e,now);
   const tp=tempoFor(e, now, +L.km||0);
@@ -595,9 +596,13 @@ function viewLage(){
       <button class="btn sm" data-a="gps" ${e.route?'':'disabled'} style="color:var(--good)">${ICON.gps} GPS</button></div>
     <div class="grid2">
       <label class="f">Routen-km<input type="number" inputmode="decimal" step="0.1" data-l="km" value="${esc(L.km)}" style="font-size:28px;font-weight:700;min-height:58px"></label>
-      <label class="f">Uhrzeit<input type="datetime-local" data-l="time" value="${esc(L.time)}" style="font-size:16px;min-height:58px"></label>
+      ${ui.timeOverride
+        ? `<label class="f">Andere Zeit<input type="datetime-local" data-l="time" value="${esc(L.time)}" style="font-size:16px;min-height:58px"></label>`
+        : `<div class="stat" style="gap:6px"><span style="font-size:13px;color:var(--muted)">Uhrzeit</span><span style="min-height:58px;display:flex;align-items:center;font-size:28px;font-weight:700"><span class="small muted" style="font-weight:600;margin-right:8px">Jetzt</span><span id="nowClock">${hmPlain(now)}</span></span></div>`}
     </div>
-    <button class="btn sm" data-a="now">Uhrzeit auf jetzt setzen</button>
+    ${ui.timeOverride
+      ? `<button class="btn sm" data-a="timeNow">Zurück auf jetzt</button>`
+      : `<button class="btn sm" style="background:transparent;border:none;color:var(--muted);min-height:40px;justify-content:flex-start;padding:0;font-weight:500;text-decoration:underline;text-underline-offset:3px" data-a="timeOther">Andere Zeit eingeben (nachtragen, planen)</button>`}
   </div>
   <div class="card">
     <span class="small muted" id="feelLbl">Wie fühlst du dich?</span>
@@ -975,7 +980,9 @@ document.addEventListener('click', ev_=>{
   const a=el.dataset.a, e=ev();
   if(el.tagName==='INPUT') return; // radio/file handled on change
   switch(a){
-    case 'go': ui.view=el.dataset.v; ui.confirmDelete=false; render(); window.scrollTo(0,0); break;
+    case 'go': if(el.dataset.v==='lage' && ui.view!=='lage' && !(e.id==='demo' && ui.timeOverride)) ui.timeOverride=false; ui.view=el.dataset.v; ui.confirmDelete=false; render(); window.scrollTo(0,0); break;
+    case 'timeOther': ui.timeOverride=true; render(); break;
+    case 'timeNow': ui.timeOverride=false; render(); break;
     case 'newEv': ui.newEvent=true; render(); setTimeout(()=>document.getElementById('newEvName')?.focus(),0); break;
     case 'newEvCancel': ui.newEvent=false; render(); break;
     case 'newEvSave': {
@@ -983,13 +990,13 @@ document.addEventListener('click', ev_=>{
       const x=newEvent(n,''); store.events.push(x); store.currentId=x.id; ui.newEvent=false; saveStore(); render(); break; }
     case 'demo': {
       const d=demoEvent(Date.now());
-      store.events=store.events.filter(x=>x.id!=='demo'); store.events.push(d); store.currentId=d.id; saveStore(); ui.view='lage'; render(); toast('Demo-Event mit künstlicher Route geladen.'); break; }
+      store.events=store.events.filter(x=>x.id!=='demo'); store.events.push(d); store.currentId=d.id; saveStore(); ui.timeOverride=true; ui.view='lage'; render(); toast('Demo-Event geladen – Zeit fest auf 19:40 gesetzt.'); break; }
     case 'setStep': { const k=el.dataset.k, s=STEP[k]; e[k]=clamp(e[k]+s.d*(+el.dataset.d),s); if(k==='minSleep') e.lage.minSleep=e[k]; saveStore(); render(); break; }
     case 'lStep': { const k=el.dataset.k, s=STEP[k]; e.lage[k]=clamp(e.lage[k]+s.d*(+el.dataset.d),s); saveStore(); render(); break; }
     case 'feel': { const n=+el.dataset.n; e.lage.feel=n; e.lage.maxRide=FEEL_MAXRIDE[n-1]; saveStore(); render(); break; }
-    case 'now': e.lage.time=toLocalInput(Date.now()); saveStore(); render(); break;
     case 'gps': doGps(); break;
     case 'calc': {
+      if(!ui.timeOverride) e.lage.time=toLocalInput(Date.now());
       const t=fromLocalInput(e.lage.time), km=+e.lage.km||0;
       e.log=(e.log||[]).filter(x=>Math.abs(x.t-t)>5*60e3); e.log.push({t,km}); e.log.sort((x,y)=>x.t-y.t);
       if(e.log.length>200) e.log=e.log.slice(-200);
@@ -1110,6 +1117,8 @@ function setupOffline(){
     }
   }catch(e){}
 }
+setInterval(()=>{ if(ui.view==='lage' && !ui.timeOverride){ const c=document.getElementById('nowClock'); const n=Date.now(); ev().lage.time=toLocalInput(n); if(c) c.textContent=hmPlain(n); } }, 15000);
+document.addEventListener('visibilitychange', ()=>{ if(!document.hidden && ui.view==='lage' && !ui.timeOverride) render(); });
 setupOffline();
 render();
 </script>
