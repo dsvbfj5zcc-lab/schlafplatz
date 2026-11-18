@@ -192,7 +192,7 @@ function isNight(ms){
 }
 /* Fahrt simulieren: von fromKm ab startMs; Stopp bei toKm oder untilMs */
 /* Leistungsmodell (kalibriert an intervals.icu-Fahrten, siehe claude/schlafplatz-tempomodell.md) */
-const MODEL_DEFAULTS = {power:150, mass:90, pause:10, cda:0.38, crr:0.005, climbK:4, climbMax:50, descDay:48, descNight:38}; // kalibriert an 19 Fahrten (Nov 2026)
+const MODEL_DEFAULTS = {power:170, mass:90, pause:10, cda:0.38, crr:0.005, climbK:4, climbMax:50, descDay:48, descNight:38}; // kalibriert an 19 Fahrten (Nov 2026)
 function modelOf(ev){ const m=Object.assign({}, MODEL_DEFAULTS, ev.model||{}); return m; }
 // Geschwindigkeit in km/h aus Leistung (W) und Steigung (Anteil), Höhe für Luftdichte
 function speedKmh(P, grade, ele, m){
@@ -204,16 +204,26 @@ function speedKmh(P, grade, ele, m){
   for(let k=0;k<32;k++){ const mid=(lo+hi)/2; if(need(mid)>P) hi=mid; else lo=mid; }
   return lo*3.6;
 }
-function segSpeed(grade, ele, ms, feelF, m){
+/* Leistungsabfall über die Stunden seit dem Aufstehen (Vollgummi vol. 2 + 3): flach stärker als am Berg */
+const DECAY_FLAT  = [[0,1.0],[2,1.0],[6,0.86],[10,0.75],[14,0.70],[18,0.65],[22,0.58],[30,0.52]];
+const DECAY_CLIMB = [[0,1.0],[2,1.0],[6,0.89],[10,0.82],[14,0.79],[18,0.76],[22,0.75],[30,0.72]];
+function interpPts(pts,h){
+  if(h<=pts[0][0]) return pts[0][1];
+  for(let i=1;i<pts.length;i++){ const [a,x]=pts[i-1], [b,y]=pts[i]; if(h<=b) return x+(y-x)*(h-a)/(b-a); }
+  return pts[pts.length-1][1];
+}
+function decayAt(h, pct){ const w=Math.min(1,Math.max(0,pct/4)); return interpPts(DECAY_FLAT,h)*(1-w)+interpPts(DECAY_CLIMB,h)*w; }
+function segSpeed(grade, ele, ms, feelF, m, wakeMs){
   const pct=grade*100;
   const mult = pct>=0 ? Math.min(1+m.climbK/100*pct, 1+m.climbMax/100) : Math.max(0, 1+m.climbK/100*pct);
-  let v = speedKmh(Math.max(5, m.power*feelF*mult), grade, ele, m);
+  const f = wakeMs!=null ? decayAt(Math.max(0,(ms-wakeMs)/3600e3), pct) : 1;
+  let v = speedKmh(Math.max(5, m.power*feelF*mult*f), grade, ele, m);
   const cap = isNight(ms) ? m.descNight : m.descDay;
   if(v>cap) v=cap;
   return Math.max(3, v);
 }
 /* Fahrt simulieren: von fromKm ab startMs; Stopp bei toKm oder untilMs. Zeiten inkl. Pausenanteil. */
-function walk(ev, fromKm, startMs, feelF, toKm, untilMs){
+function walk(ev, fromKm, startMs, feelF, toKm, untilMs, wakeMs){
   const route=ev.route, m=modelOf(ev), pf=1+(m.pause||0)/100;
   const pts = route && route.pts;
   const endKm = toKm!=null ? toKm : (pts ? pts[pts.length-1][0] : fromKm+3000);
@@ -226,7 +236,7 @@ function walk(ev, fromKm, startMs, feelF, toKm, untilMs){
     else nk = Math.min(endKm, Math.floor(km+1e-9)+1);
     if(nk<=km) continue;
     const ne=eleAt(route,nk), dk=nk-km, dh=ne-ele;
-    const v = segSpeed(dh/(dk*1000), (ele+ne)/2, t, feelF, m);
+    const v = segSpeed(dh/(dk*1000), (ele+ne)/2, t, feelF, m, wakeMs);
     const dt = dk/v*3600e3*pf;
     if(untilMs!=null && t+dt>untilMs){
       const f=(untilMs-t)/dt;
@@ -237,10 +247,10 @@ function walk(ev, fromKm, startMs, feelF, toKm, untilMs){
   return {km, t, hm, end:true};
 }
 /* Umweg ab Route: hin = bergauf um detHm, zurück = bergab */
-function detourMs(ev, detKm, detHm, feelF, atMs, back){
+function detourMs(ev, detKm, detHm, feelF, atMs, back, wakeMs){
   if(!detKm) return 0;
   const m=modelOf(ev), gr=(detHm||0)/(detKm*1000)*(back?-1:1);
-  return detKm/segSpeed(gr, 0, atMs, feelF, m)*3600e3*(1+(m.pause||0)/100);
+  return detKm/segSpeed(gr, 0, atMs, feelF, m, wakeMs)*3600e3*(1+(m.pause||0)/100);
 }
 function parseHHMM(s){
   if(!s) return null;
@@ -269,28 +279,43 @@ function refMs(nowMs, hhmm){
 function lateOk(v){ v=(v||'').toLowerCase(); return v==='ja'||v.startsWith('schl'); }
 function lateAsk(v){ return (v||'').toLowerCase().startsWith('auf'); }
 
+/* Aufstehzeit für den laufenden Renntag (Renntag wechselt um 04:00) */
+function dayKey(ms){ const d=new Date(ms-4*3600e3); return d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate(); }
+function raceStartMs(ev){
+  if(!ev.startDate) return null; const [y,mo,d]=ev.startDate.split('-').map(Number);
+  const [h,mi]=(ev.startTime||'06:00').split(':').map(Number); return new Date(y,mo-1,d,h||0,mi||0).getTime();
+}
+function wakeFor(ev, nowMs){
+  const L=ev.lage||{};
+  if(L.wake && L.wakeFor===dayKey(nowMs) && L.wake<=nowMs) return L.wake;
+  const rs=raceStartMs(ev);
+  if(rs!=null && rs<=nowMs && nowMs-rs<20*3600e3) return rs;
+  if(ev.lastStartMs && ev.lastStartMs<=nowMs && nowMs-ev.lastStartMs<22*3600e3) return ev.lastStartMs;
+  const d=new Date(nowMs-4*3600e3); return new Date(d.getFullYear(),d.getMonth(),d.getDate(),5,0).getTime();
+}
 function computeOptions(ev, nowMs){
   const L=ev.lage;
   const curKm=+L.km||0;
   const feelF=FEEL_FACTOR[(L.feel||3)-1];
   const mdl=modelOf(ev);
   const limitMs = nowMs + (L.maxRide||4)*3600e3;
-  const reach = walk(ev,curKm,nowMs,feelF,null,limitMs);
+  const wakeMs = wakeFor(ev, nowMs);
+  const reach = walk(ev,curKm,nowMs,feelF,null,limitMs,wakeMs);
   const ref = refMs(nowMs, ev.refTime);
   const res=[]; let behind=0, noKm=0;
   for(const a of ev.accs){
     if(a.km==null||isNaN(a.km)){ noKm++; continue; }
     if(a.km < curKm-0.2){ behind++; continue; }
-    const w = walk(ev,curKm,nowMs,feelF,a.km,null);
-    const det = detourMs(ev,a.detKm,a.detHm,feelF,w.t,false);
+    const w = walk(ev,curKm,nowMs,feelF,a.km,null,wakeMs);
+    const det = detourMs(ev,a.detKm,a.detHm,feelF,w.t,false,wakeMs);
     const eta = w.t + det;
     const hm = Math.round(w.hm + (a.detHm||0));
     const dl = lateOk(a.late) ? null : deadlineMs(eta, a.checkin);
     const reserve = dl==null ? null : Math.round((dl-eta)/60e3);
     const start = eta + (L.minSleep||270)*60e3;
     let posRef = a.km;
-    const back = detourMs(ev,a.detKm,a.detHm,1,start,true);
-    if(start+back < ref) posRef = walk(ev,a.km,start+back,1,null,ref).km;
+    const back = detourMs(ev,a.detKm,a.detHm,1,start,true,start);
+    if(start+back < ref) posRef = walk(ev,a.km,start+back,1,null,ref,start).km;
     const status = (ev.status&&ev.status[a.id]) || a.status || 'offen';
     let cls;
     if(status==='abgesagt') cls='abgesagt';
@@ -307,7 +332,7 @@ function computeOptions(ev, nowMs){
   res.sort((x,y)=> order[x.cls]-order[y.cls] || (x.feasible? y.score-x.score : x.eta-y.eta));
   const best = res.find(r=>r.feasible && r.cls==='ok') || res.find(r=>r.feasible);
   if(best){ best.recommended=true; res.splice(res.indexOf(best),1); res.unshift(best); }
-  return {list:res, mdl, feelF, reachKm:reach.km, limitMs, ref, behind, noKm, curKm};
+  return {list:res, mdl, feelF, wakeMs, powerNow:mdl.power*feelF*decayAt(Math.max(0,(nowMs-wakeMs)/3600e3),0), reachKm:reach.km, limitMs, ref, behind, noKm, curKm};
 }
 
 /* CSV */
@@ -435,10 +460,10 @@ function demoEvent(now){
   const lageT=new Date(d.getFullYear(),d.getMonth(),d.getDate(),19,40).getTime();
   return {
     id:'demo', name:'Demo / Testdaten', startDate:fmtDateISO(start), startTime:'06:00',
-    minSleep:270, model:{power:160, mass:88, pause:10}, refTime:'09:00', myName:'', myPhone:'',
+    minSleep:270, model:{power:175}, refTime:'09:00', myName:'', myPhone:'',
     route, accs, status:{}, bookedId:null,
     log:[{t:lageT-3*3600e3, km:500},{t:lageT-1.5*3600e3, km:533}],
-    lage:{km:560, time:toLocalInput(lageT), feel:3, minSleep:270, maxRide:4, tempoOverride:null}
+    lage:{km:560, time:toLocalInput(lageT), feel:3, minSleep:270, maxRide:4, tempoOverride:null, wake:lageT-12.5*3600e3, wakeFor:dayKey(lageT)}
   };
 }
 function pad(n){return String(n).padStart(2,'0');}
@@ -580,6 +605,17 @@ function viewSetup(){
   <button class="btn primary" data-a="go" data-v="lage">Weiter zur Lage</button>
   </div>`;
 }
+function wakeCard(e, now){
+  const L=e.lage, w=wakeFor(e, now), h=Math.max(0,(now-w)/3600e3), m=modelOf(e), fF=FEEL_FACTOR[(L.feel||3)-1];
+  const pNow=Math.round(m.power*fF*decayAt(h,0)), drop=Math.round((1-decayAt(h,0))*100);
+  const manual = L.wake && L.wakeFor===dayKey(now);
+  return `<div class="card">
+    <div class="between"><div class="stat"><span class="l" style="font-size:13px">Heute unterwegs seit</span><span class="v" style="font-size:22px">${hmPlain(w)} <span class="small muted" style="font-weight:500">· ${dur(h*60)}</span></span></div>
+      <div class="row"><button class="sq" aria-label="30 Minuten früher" data-a="wake" data-d="-1">−</button><button class="sq" aria-label="30 Minuten später" data-a="wake" data-d="1">+</button></div></div>
+    <span class="small soft">Rechnet jetzt mit ${pNow} W flach${drop>0?` (−${drop} % seit dem Aufstehen)`:''}, am Berg mehr; ${m.pause} % Pausen.</span>
+    ${manual?`<button class="btn sm" style="background:transparent;border:none;color:var(--muted);min-height:36px;justify-content:flex-start;padding:0;text-decoration:underline;text-underline-offset:3px" data-a="wakeAuto">Automatisch bestimmen</button>`:`<span class="tiny muted">Automatisch: ${raceStartMs(e)!=null && w===raceStartMs(e)?'Rennstart':(e.lastStartMs===w?'Start nach der letzten gebuchten Unterkunft':'Annahme 05:00')} – bei Bedarf anpassen.</span>`}
+  </div>`;
+}
 function modelCard(e){
   const m=modelOf(e);
   const row=(label,k,shown,hint)=>`<div class="list-row"><div class="stack" style="gap:2px;min-width:0"><span style="font-size:15px">${label}</span>${hint?`<span class="tiny muted">${hint}</span>`:''}</div><div class="row"><button class="sq" style="width:40px;height:40px" aria-label="${label} verringern" data-a="mStep" data-k="${k}" data-d="-1">−</button><span style="min-width:62px;text-align:center;font-weight:600">${shown}</span><button class="sq" style="width:40px;height:40px" aria-label="${label} erhöhen" data-a="mStep" data-k="${k}" data-d="1">+</button></div></div>`;
@@ -587,7 +623,7 @@ function modelCard(e){
     <h2>Tempomodell</h2>
     <span class="small muted">Das Tempo wird aus Leistung, Steigung, Gewicht und Luftwiderstand berechnet – kalibriert an 19 deiner Fahrten (±3 %).</span>
     <div style="padding-top:4px">
-    ${row('Dauerleistung flach','power',m.power+' W','im Rennen, Gefühl 3')}
+    ${row('Leistung flach, ausgeruht','power',m.power+' W','erste Stunden nach dem Aufstehen')}
     ${row('Systemgewicht','mass',m.mass+' kg','Fahrer, Rad, Gepäck, Wasser')}
     ${row('Pausen','pause',m.pause+' %','Anteil zur Fahrzeit')}
     </div>
@@ -600,7 +636,8 @@ function modelCard(e){
     ${row('Rollwiderstand Crr','crr',m.crr.toFixed(4),'')}
     <button class="btn sm" data-a="mReset" style="margin-top:8px">Standardwerte</button>
     </div></details>
-    <span class="small soft">Flach ${fmtKm(speedKmh(m.power,0,300,m))} km/h · 6 % Steigung ${fmtKm(speedKmh(Math.min(m.power*(1+m.climbK*6/100), m.power*(1+m.climbMax/100)),0.06,800,m))} km/h</span>
+    <span class="small muted">Sinkt automatisch mit den Stunden seit dem Aufstehen, wie bei deinen Vollgummi-Fahrten: nach 8 h flach etwa −20 %, nach 16 h etwa −33 %, am Berg weniger.</span>
+    <span class="small soft">Ausgeruht: flach ${fmtKm(speedKmh(m.power,0,300,m))} km/h · 6 % Steigung ${fmtKm(speedKmh(Math.min(m.power*(1+m.climbK*6/100), m.power*(1+m.climbMax/100)),0.06,800,m))} km/h</span>
   </div>`;
 }
 function numRow(label, key, shown, k){
@@ -642,7 +679,7 @@ function viewLage(){
       <div class="row"><button class="sq" aria-label="Weniger Schlaf" data-a="lStep" data-k="minSleep" data-d="-1">−</button><button class="sq" aria-label="Mehr Schlaf" data-a="lStep" data-k="minSleep" data-d="1">+</button></div></div>
     <span class="small muted">Start morgen = Ankunft + Mindestschlaf</span>
   </div>
-  <div class="note">Gerechnet mit ${Math.round(modelOf(e).power*FEEL_FACTOR[(L.feel||3)-1])} W flach (Gefühl ${L.feel}), am Berg bis ${Math.round(modelOf(e).power*FEEL_FACTOR[(L.feel||3)-1]*(1+modelOf(e).climbMax/100))} W, ${modelOf(e).pause} % Pausen. Ändern im Setup.</div>
+  ${wakeCard(e, now)}
   <button class="btn primary" data-a="calc">Unterkünfte berechnen</button>
   </div>`;
 }
@@ -657,7 +694,7 @@ function viewOptionen(){
   return `<div class="stack">
     <div class="row"><button class="back" aria-label="Zurück zur Lage" data-a="go" data-v="lage" style="color:var(--text)">${ICON.back}</button>
       <div class="stack" style="gap:2px"><h1 style="font-size:24px">${feas} ${feas===1?'Option':'Optionen'}</h1><span class="small muted">ab km ${fmtKm(c.curKm)} · ${hmPlain(now)} · Gefühl ${L.feel} · ${dur(L.minSleep)} Schlaf</span></div></div>
-    <div class="note">Realistisch heute noch bis ca. <strong style="color:var(--text)">km ${fmtKm(c.reachKm)}</strong> (${dur(L.maxRide*60)} unterwegs, ${Math.round(c.mdl.power*c.feelF)} W flach, Steigungen, Pausen und Nacht eingerechnet). «Morgen» = Position um ${hmPlain(c.ref)}.</div>
+    <div class="note">Realistisch heute noch bis ca. <strong style="color:var(--text)">km ${fmtKm(c.reachKm)}</strong> (${dur(L.maxRide*60)} unterwegs, jetzt ${Math.round(c.powerNow)} W flach und sinkend, Steigungen, Pausen und Nacht eingerechnet). «Morgen» = Position um ${hmPlain(c.ref)}.</div>
     ${cards || `<div class="note">Keine Unterkünfte vor dir.${!e.accs.length?' Im Setup welche importieren.':''}</div>`}
     ${c.behind||c.noKm?`<span class="small muted">${c.behind?c.behind+' bereits hinter dir':''}${c.behind&&c.noKm?' · ':''}${c.noKm?c.noKm+' ohne Routen-km':''}</span>`:''}
   </div>`;
@@ -985,7 +1022,8 @@ let _rzT=null; window.addEventListener('resize', ()=>{ clearTimeout(_rzT); _rzT=
 function setStatus(id, s){
   const e=ev(); e.status=e.status||{};
   e.status[id]=s;
-  if(s==='gebucht'){ if(e.bookedId && e.bookedId!==id) e.status[e.bookedId]='offen'; e.bookedId=id; }
+  if(s==='gebucht'){ if(e.bookedId && e.bookedId!==id) e.status[e.bookedId]='offen'; e.bookedId=id;
+    try{ const r=computeOptions(e, fromLocalInput(e.lage.time)).list.find(x=>x.a.id===id); if(r) e.lastStartMs=r.start; }catch(_){} }
   else if(e.bookedId===id) e.bookedId=null;
   saveStore();
 }
@@ -1014,6 +1052,8 @@ document.addEventListener('click', ev_=>{
       store.events=store.events.filter(x=>x.id!=='demo'); store.events.push(d); store.currentId=d.id; saveStore(); ui.timeOverride=true; ui.view='lage'; render(); toast('Demo-Event geladen – Zeit fest auf 19:40 gesetzt.'); break; }
     case 'setStep': { const k=el.dataset.k, s=STEP[k]; e[k]=clamp(e[k]+s.d*(+el.dataset.d),s); if(k==='minSleep') e.lage.minSleep=e[k]; saveStore(); render(); break; }
     case 'mStep': { const k=el.dataset.k, s=MSTEP[k]; const m=modelOf(e); e.model=Object.assign({}, e.model||{}); e.model[k]=Math.min(s.max, Math.max(s.min, Math.round((m[k]+s.d*(+el.dataset.d))*10000)/10000)); saveStore(); render(); break; }
+    case 'wake': { const now=fromLocalInput(e.lage.time); const w=wakeFor(e, now)+(+el.dataset.d)*30*60e3; e.lage.wake=Math.min(now, w); e.lage.wakeFor=dayKey(now); saveStore(); render(); break; }
+    case 'wakeAuto': e.lage.wake=null; e.lage.wakeFor=null; saveStore(); render(); break;
     case 'mReset': e.model={}; saveStore(); render(); toast('Standardwerte gesetzt.'); break;
     case 'lStep': { const k=el.dataset.k, s=STEP[k]; e.lage[k]=clamp(e.lage[k]+s.d*(+el.dataset.d),s); saveStore(); render(); break; }
     case 'feel': { const n=+el.dataset.n; e.lage.feel=n; e.lage.maxRide=FEEL_MAXRIDE[n-1]; saveStore(); render(); break; }
