@@ -844,7 +844,7 @@ function listAll(e, c, now){
   const rowA=a=>{ const r=byId.get(a.id); const res=r.reserve==null?'keine Frist':(r.reserve<0?dur(r.reserve):'+'+dur(r.reserve));
     return `<button class="opt card" style="padding:12px 14px;gap:6px;${r.cls==='unreachable'||r.cls==='abgesagt'?'opacity:.6':''}" data-a="detail" data-id="${esc(a.id)}">
       <div class="lrow"><span class="lkm">km ${fmtKm(a.km)}</span><span style="flex:1;min-width:0;font-weight:600;font-size:16px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(a.name)}</span>${badge(r)}</div>
-      <div class="lrow small muted"><span class="lkm">+${fmtKm(r.dist)}</span><span style="flex:1">${a.prio?a.prio+' · ':''}an ${hm(r.eta,now)} · Reserve ${res} · Start ${hm(r.start,now)}</span></div></button>`; };
+      <div class="lrow small muted" style="flex-wrap:wrap;row-gap:2px"><span class="lkm" style="white-space:nowrap;color:var(--soft)">+${fmtKm(r.dist)} km / ${fmtInt(r.hm)} Hm</span><span style="flex:1;min-width:180px">${a.prio?a.prio+' · ':''}an ${hm(r.eta,now)} · Reserve ${res} · Start ${hm(r.start,now)}</span></div></button>`; };
   const rowB=a=>`<div class="lrow small" style="min-height:44px;border-bottom:1px solid var(--line)"><span class="lkm">km ${fmtKm(a.km)}</span><span style="flex:1" class="muted">${esc(a.name)}${a.ort?' · '+esc(a.ort):''}</span><span class="tiny muted">${esc((e.status&&e.status[a.id])||a.status||'offen')}</span></div>`;
   return `<div class="stack" style="gap:10px">
     <span class="eyebrow">Vor dir · ${ahead.length}</span>
