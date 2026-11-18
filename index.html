@@ -356,7 +356,7 @@ function parseCSV(text){
   return rows.filter(r=>r.some(c=>c.trim()!==''));
 }
 function normH(s){ return String(s).toLowerCase().replace(/ä/g,'a').replace(/ö/g,'o').replace(/ü/g,'u').replace(/[^a-z]/g,''); }
-const COLS = {prio:'prio',name:'name',ort:'ort',routenkm:'km',umwegkm:'detKm',umweghm:'detHm',checkinbis:'checkin',latecheckin:'late',velo:'velo',status:'status',sprache:'lang',telefon:'phone',whatsapp:'wa',mail:'mail',email:'mail',fruhstuck:'breakfast',preisca:'price',preis:'price',koordinatenlink:'coords',koordinaten:'coords',notizen:'notes'};
+const COLS = {prio:'prio',name:'name',ort:'ort',routenkm:'km',umwegkm:'detKm',umweghm:'detHm',checkinbis:'checkin',latecheckin:'late',velo:'velo',status:'status',sprache:'lang',telefon:'phone',whatsapp:'wa',mail:'mail',email:'mail',fruhstuck:'breakfast',preisca:'price',preis:'price',koordinatenlink:'coords',koordinaten:'coords',notizen:'notes',bookingcom:'booking',booking:'booking',bookinglink:'booking'};
 function num(s){
   if(s==null) return null; s=String(s).trim().replace(/['’\s]/g,'');
   if(s==='') return null;
@@ -381,7 +381,7 @@ function rowsToAccs(rows, route){
       name:o.name, ort:o.ort||'', km:num(o.km), detKm:num(o.detKm), detHm:num(o.detHm),
       checkin:o.checkin||'', late:o.late||'', velo:o.velo||'', status:(o.status||'offen').toLowerCase(),
       lang:(o.lang||'').toUpperCase().slice(0,2), phone:o.phone||'', wa:o.wa||'', mail:o.mail||'',
-      breakfast:o.breakfast||'', price:o.price||'', coords:o.coords||'', notes:o.notes||'', kmGuessed:false
+      breakfast:o.breakfast||'', price:o.price||'', coords:o.coords||'', notes:o.notes||'', booking:o.booking||'', kmGuessed:false
     };
     const c=parseCoords(a.coords);
     if(c && route && a.km==null){
@@ -426,6 +426,18 @@ function texts(lang, v){
     }
   };
   return Object.assign({lang:L, de:t.DE.call}, t[L]);
+}
+/* Booking.com-Link mit Datum für die Nacht der Ankunft (Ankunft nach Mitternacht = Nacht davor) */
+function bookingUrl(a, etaMs){
+  const d=new Date(etaMs - (new Date(etaMs).getHours()<6 ? 86400e3 : 0));
+  const iso=x=>x.getFullYear()+'-'+String(x.getMonth()+1).padStart(2,'0')+'-'+String(x.getDate()).padStart(2,'0');
+  const ci=iso(d), co=iso(new Date(d.getFullYear(), d.getMonth(), d.getDate()+1));
+  let u=null;
+  try{ const x=new URL(String(a.booking||'').trim()); if(x.protocol==='https:' && /(^|\.)booking\.com$/i.test(x.hostname)) u=x; }catch(_){}
+  if(!u){ u=new URL('https://www.booking.com/searchresults.html'); u.searchParams.set('ss', [a.name,a.ort].filter(Boolean).join(' ')); }
+  u.searchParams.set('checkin',ci); u.searchParams.set('checkout',co);
+  u.searchParams.set('group_adults','1'); u.searchParams.set('no_rooms','1'); u.searchParams.set('group_children','0');
+  return {url:u.toString(), direct:!!(a.booking&&u.pathname.includes('/hotel/')), checkin:ci};
 }
 function waNumber(s){
   let d=String(s||'').replace(/[^\d+]/g,'');
@@ -764,6 +776,7 @@ function viewDetail(){
       </div>
       ${!a.phone&&!a.mail?'<span class="small muted">Keine Kontaktdaten erfasst.</span>':`<span class="small muted">${[a.phone?esc(a.phone):'',a.mail?esc(a.mail):''].filter(Boolean).join(' · ')}</span>`}
       ${a.mail?`<button class="btn sm" data-a="copyMail">Mailtext kopieren</button>`:''}
+      ${(()=>{ const B=bookingUrl(a, r.eta); return `<a class="btn" href="${esc(B.url)}" target="_blank" rel="noopener" style="border-color:#3B6FD8;color:#8DB4FF">Auf Booking.com prüfen</a><span class="tiny muted">${B.direct?'Öffnet diese Unterkunft':'Sucht nach «'+esc([a.name,a.ort].filter(Boolean).join(' '))+'»'} für die Nacht vom ${B.checkin.split('-').reverse().join('.')}, 1 Person, 1 Zimmer.</span>`; })()}
     </div>
     <div class="card" style="gap:8px">
       <span class="eyebrow">Sprechzettel · ${LANGS[T.lang]}</span>
