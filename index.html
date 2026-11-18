@@ -70,7 +70,20 @@ label.f{display:flex;flex-direction:column;gap:6px;font-size:13px;color:var(--mu
 .profile{height:90px;display:flex;align-items:flex-end;gap:2px}
 .profile div{flex:1;border-radius:2px 2px 0 0;background:#4A5560}
 nav.tabs{position:fixed;left:0;right:0;bottom:0;background:rgba(14,17,20,.96);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom);z-index:5}
-nav.tabs .in{max-width:480px;margin:0 auto;display:grid;grid-template-columns:repeat(4,1fr)}
+nav.tabs .in{max-width:480px;margin:0 auto;display:grid;grid-template-columns:repeat(5,1fr)}
+.seg{display:grid;grid-template-columns:1fr 1fr;background:var(--inset);border:1px solid var(--line);border-radius:12px;padding:3px;gap:3px}
+.seg button{min-height:42px;border:none;border-radius:9px;background:transparent;color:var(--soft);font-weight:600;font-size:15px}
+.seg button[aria-pressed="true"]{background:var(--surface);color:var(--text);box-shadow:0 1px 0 rgba(255,255,255,.04)}
+.mapwrap{position:relative;border-radius:16px;overflow:hidden;background:#0B0E11;border:1px solid var(--line);height:calc(100vh - 290px);height:calc(100dvh - 290px);min-height:340px}
+#map{width:100%;height:100%;display:block;touch-action:none}
+.mapbtns{position:absolute;right:10px;top:10px;display:flex;flex-direction:column;gap:8px}
+.mapbtns button{width:46px;height:46px;border-radius:12px;border:1px solid var(--line);background:rgba(26,31,36,.94);color:var(--text);font-size:22px;font-weight:600;display:flex;align-items:center;justify-content:center;padding:0}
+.msheet{position:absolute;left:10px;right:10px;bottom:10px;background:rgba(26,31,36,.97);border:1px solid var(--line);border-radius:16px;padding:14px;display:flex;flex-direction:column;gap:10px;box-shadow:0 8px 28px rgba(0,0,0,.45)}
+.legend{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:12px;color:var(--muted)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.dot{width:10px;height:10px;border-radius:50%;display:inline-block}
+.lrow{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.lkm{font-variant-numeric:tabular-nums;color:var(--muted);font-size:13px;min-width:56px}
 nav.tabs button{background:none;border:none;color:var(--muted);height:62px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font-size:12px;font-weight:600}
 nav.tabs button[aria-current="page"]{color:var(--accent)}
 nav.tabs svg{width:22px;height:22px}
@@ -453,7 +466,7 @@ if(!store || !store.events || !store.events.length){
   store.currentId=store.events[0].id;
 }
 const off={ready:false, update:null, standalone:(window.matchMedia&&matchMedia('(display-mode: standalone)').matches)||navigator.standalone===true, persisted:null, supported:('serviceWorker' in navigator)};
-const ui={view: store.events.find(e=>e.id===store.currentId)?.route ? 'lage' : 'setup', detailId:null, newEvent:false, confirmDelete:false};
+const ui={kmode:'map', map:null, mapSel:null, back:'optionen', view: store.events.find(e=>e.id===store.currentId)?.route ? 'lage' : 'setup', detailId:null, newEvent:false, confirmDelete:false};
 function ev(){ return store.events.find(e=>e.id===store.currentId) || store.events[0]; }
 
 function esc(s){ return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
@@ -488,19 +501,22 @@ const ICON={
   phone:'<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.4 1.8.7 2.7a2 2 0 0 1-.5 2.1L8 9.8a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.7.7a2 2 0 0 1 1.7 2z"/></svg>',
   chat:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 11.5a8.4 8.4 0 0 1-12.4 7.4L3 21l2.1-5.6A8.4 8.4 0 1 1 21 11.5z"/></svg>',
   mail:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg>',
-  gps:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>'
+  gps:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>',
+  map:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 4L3 6v14l6-2 6 2 6-2V4l-6 2-6-2z"/><path d="M9 4v14M15 6v14"/></svg>',
+  fit:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>'
 };
 
 function renderTabs(){
-  const e=ev(); const tabs=[['lage','Lage',ICON.pin],['optionen','Optionen',ICON.list],['gebucht','Gebucht',ICON.bed],['setup','Setup',ICON.gear]];
-  const cur = ui.view==='detail' ? 'optionen' : ui.view;
+  const e=ev(); const tabs=[['lage','Lage',ICON.pin],['optionen','Optionen',ICON.list],['karte','Karte',ICON.map],['gebucht','Gebucht',ICON.bed],['setup','Setup',ICON.gear]];
+  const cur = ui.view==='detail' ? (ui.back||'optionen') : ui.view;
   document.getElementById('tabs').innerHTML='<div class="in">'+tabs.map(([k,l,i])=>`<button data-a="go" data-v="${k}" ${cur===k?'aria-current="page"':''}>${i}<span>${l}${k==='gebucht'&&e.bookedId?' •':''}</span></button>`).join('')+'</div>';
 }
 function render(){
   const app=document.getElementById('app');
   const v=ui.view;
-  app.innerHTML = v==='setup'? viewSetup() : v==='lage'? viewLage() : v==='optionen'? viewOptionen() : v==='detail'? viewDetail() : viewGebucht();
+  app.innerHTML = v==='setup'? viewSetup() : v==='lage'? viewLage() : v==='optionen'? viewOptionen() : v==='karte'? viewKarte() : v==='detail'? viewDetail() : viewGebucht();
   renderTabs();
+  if(v==='karte' && ui.kmode==='map' && ev().route) initMap();
 }
 
 /* ---- Setup ---- */
@@ -657,7 +673,7 @@ function contactVars(e, r){
 }
 function viewDetail(){
   const e=ev(); const {r, now, c}=findCalc(ui.detailId);
-  if(!r){ return `<div class="stack"><div class="row"><button class="back" aria-label="Zurück" data-a="go" data-v="optionen" style="color:var(--text)">${ICON.back}</button><h1 style="font-size:22px">Nicht gefunden</h1></div><div class="note">Diese Unterkunft liegt nicht mehr vor dir.</div></div>`; }
+  if(!r){ return `<div class="stack"><div class="row"><button class="back" aria-label="Zurück" data-a="go" data-v="${ui.back||'optionen'}" style="color:var(--text)">${ICON.back}</button><h1 style="font-size:22px">Nicht gefunden</h1></div><div class="note">Diese Unterkunft liegt nicht mehr vor dir.</div></div>`; }
   const a=r.a, T=texts(a.lang, contactVars(e,r));
   const tel = a.phone ? 'tel:'+a.phone.replace(/[^\d+]/g,'') : '';
   const wa = waNumber(a.wa||a.phone) ? 'https://wa.me/'+waNumber(a.wa||a.phone)+'?text='+encodeURIComponent(T.wa) : '';
@@ -666,7 +682,7 @@ function viewDetail(){
   const checkinTxt = lateOk(a.late) ? `<span class="good">${esc(a.late.toLowerCase().startsWith('schl')?'Schlüsselbox':'Late Check-in')}</span>` : (a.checkin? `bis ${esc(a.checkin)}`+(r.reserve!=null?` <span class="tiny ${r.reserve<0?'bad':r.reserve<30?'warn':'good'}">(${r.reserve<0?'':'+'}${dur(r.reserve)})</span>`:'') : '<span class="muted">unbekannt</span>');
   const st=r.status;
   return `<div class="stack">
-    <div class="row"><button class="back" aria-label="Zurück zu den Optionen" data-a="go" data-v="optionen" style="color:var(--text)">${ICON.back}</button>
+    <div class="row"><button class="back" aria-label="Zurück" data-a="go" data-v="${ui.back||'optionen'}" style="color:var(--text)">${ICON.back}</button>
       <div class="stack" style="gap:2px;min-width:0"><h1 style="font-size:22px">${esc(a.name)}</h1><span class="small muted">${a.ort?esc(a.ort)+' · ':''}${LANGS[T.lang]} · Status: ${esc(st)}</span></div></div>
     ${r.cls!=='ok'?`<div>${badge(r)}</div>`:''}
     <div class="grid2">
@@ -731,6 +747,215 @@ function viewGebucht(){
   </div>`;
 }
 
+/* ---- Karte & Liste ---- */
+const MCOL={rec:'#FFB547', ok:'#5BD68A', tight:'#F4E27A', ask:'#F4E27A', overlimit:'#9AA5AF', unreachable:'#FF9A8E', abgesagt:'#FF9A8E', behind:'#4A5560', booked:'#5BD68A', pos:'#5AA9FF'};
+function markColor(r, behind){ if(behind) return MCOL.behind; if(r.status==='gebucht') return MCOL.booked; if(r.recommended) return MCOL.rec; return MCOL[r.cls]||MCOL.ok; }
+function viewKarte(){
+  const e=ev(), L=e.lage, now=fromLocalInput(L.time);
+  const c=computeOptions(e, now); lastCalc=c;
+  const head=`<div class="stack" style="gap:2px"><h1 style="font-size:24px">Unterkünfte</h1><span class="small muted">Position km ${fmtKm(c.curKm)} · ${hmPlain(now)} · ${e.accs.length} erfasst</span></div>`;
+  const seg=`<div class="seg" role="group" aria-label="Ansicht wählen"><button data-a="kmode" data-m="map" aria-pressed="${ui.kmode==='map'}">Karte</button><button data-a="kmode" data-m="list" aria-pressed="${ui.kmode==='list'}">Liste</button></div>`;
+  if(ui.kmode==='list') return `<div class="stack">${head}${seg}${listAll(e,c,now)}</div>`;
+  if(!e.route) return `<div class="stack">${head}${seg}<div class="note">Für die Karte braucht es die Route. Im Setup die GPX-Datei laden.</div></div>`;
+  let sheet='';
+  if(ui.mapSel){
+    const r=c.list.find(x=>x.a.id===ui.mapSel), a=e.accs.find(x=>x.id===ui.mapSel);
+    if(r) sheet=`<div class="msheet"><div class="between">${badge(r)}<button class="btn sm" style="min-height:36px;width:44px;padding:0" aria-label="Schliessen" data-a="mclose">✕</button></div>
+      <div class="stack" style="gap:2px"><span style="font-size:17px;font-weight:600">${esc(r.a.name)}</span><span class="small muted">${r.a.ort?esc(r.a.ort)+' · ':''}km ${fmtKm(r.a.km)} · +${fmtKm(r.dist)} km · ${fmtInt(r.hm)} Hm</span></div>
+      <div class="grid3"><div class="stat"><span class="l">Ankunft</span><span class="v">${hm(r.eta,now)}</span></div><div class="stat"><span class="l">Reserve</span><span class="v">${r.reserve==null?'<span class="good">keine Frist</span>':`<span class="${r.reserve<0?'bad':r.reserve<30?'warn':'good'}">${dur(r.reserve)}</span>`}</span></div><div class="stat"><span class="l">Start morgen</span><span class="v">${hm(r.start,now)}</span></div></div>
+      <button class="btn" style="border-color:var(--accent);color:var(--accent)" data-a="detail" data-id="${esc(r.a.id)}">Details & Kontakt</button></div>`;
+    else if(a) sheet=`<div class="msheet"><div class="between"><span class="pill">Hinter dir</span><button class="btn sm" style="min-height:36px;width:44px;padding:0" aria-label="Schliessen" data-a="mclose">✕</button></div><div class="stack" style="gap:2px"><span style="font-size:17px;font-weight:600">${esc(a.name)}</span><span class="small muted">${a.ort?esc(a.ort)+' · ':''}km ${a.km!=null?fmtKm(a.km):'?'} · Status: ${esc((e.status&&e.status[a.id])||a.status||'offen')}</span></div></div>`;
+  }
+  const lg=[['rec','Empfohlen'],['ok','Möglich'],['tight','Knapp'],['overlimit','Über Limit'],['unreachable','Nicht erreichbar'],['behind','Hinter dir']].map(([k,l])=>`<span><i class="dot" style="background:${MCOL[k]}"></i>${l}</span>`).join('');
+  return `<div class="stack">${head}${seg}
+    <div class="mapwrap"><canvas id="map" role="img" aria-label="Karte: Route, deine Position bei km ${fmtKm(c.curKm)} und ${e.accs.length} Unterkünfte"></canvas>
+      <div class="mapbtns"><button data-a="mzoom" data-d="1" aria-label="Hineinzoomen">+</button><button data-a="mzoom" data-d="-1" aria-label="Herauszoomen">−</button><button data-a="mpos" aria-label="Auf meine Position zentrieren">${ICON.gps}</button><button data-a="mfit" aria-label="Ganze Route zeigen">${ICON.fit}</button></div>
+      ${sheet}</div>
+    <div class="legend"><span><i class="dot" style="background:${MCOL.pos}"></i>Du</span><span><i class="dot" style="background:#FFB547;border-radius:2px;width:16px;height:4px"></i>heute erreichbar</span>${lg}</div>
+  </div>`;
+}
+function listAll(e, c, now){
+  const byId=new Map(c.list.map(r=>[r.a.id,r]));
+  const sorted=e.accs.slice().sort((a,b)=>(a.km??1e9)-(b.km??1e9));
+  const ahead=sorted.filter(a=>byId.has(a.id)), behind=sorted.filter(a=>a.km!=null && !byId.has(a.id)), nokm=sorted.filter(a=>a.km==null);
+  if(!e.accs.length) return `<div class="note">Noch keine Unterkünfte erfasst. Im Setup importieren.</div>`;
+  const rowA=a=>{ const r=byId.get(a.id); const res=r.reserve==null?'keine Frist':(r.reserve<0?dur(r.reserve):'+'+dur(r.reserve));
+    return `<button class="opt card" style="padding:12px 14px;gap:6px;${r.cls==='unreachable'||r.cls==='abgesagt'?'opacity:.6':''}" data-a="detail" data-id="${esc(a.id)}">
+      <div class="lrow"><span class="lkm">km ${fmtKm(a.km)}</span><span style="flex:1;min-width:0;font-weight:600;font-size:16px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(a.name)}</span>${badge(r)}</div>
+      <div class="lrow small muted"><span class="lkm">+${fmtKm(r.dist)}</span><span style="flex:1">${a.prio?a.prio+' · ':''}an ${hm(r.eta,now)} · Reserve ${res} · Start ${hm(r.start,now)}</span></div></button>`; };
+  const rowB=a=>`<div class="lrow small" style="min-height:44px;border-bottom:1px solid var(--line)"><span class="lkm">km ${fmtKm(a.km)}</span><span style="flex:1" class="muted">${esc(a.name)}${a.ort?' · '+esc(a.ort):''}</span><span class="tiny muted">${esc((e.status&&e.status[a.id])||a.status||'offen')}</span></div>`;
+  return `<div class="stack" style="gap:10px">
+    <span class="eyebrow">Vor dir · ${ahead.length}</span>
+    ${ahead.map(rowA).join('')||'<div class="note">Keine Unterkünfte mehr vor dir.</div>'}
+    ${behind.length?`<details><summary>Hinter dir · ${behind.length}</summary><div>${behind.slice().reverse().map(rowB).join('')}</div></details>`:''}
+    ${nokm.length?`<details><summary>Ohne Position · ${nokm.length}</summary><div>${nokm.map(a=>`<div class="lrow small" style="min-height:44px;border-bottom:1px solid var(--line)"><span class="muted">${esc(a.name)}${a.ort?' · '+esc(a.ort):''}</span></div>`).join('')}</div></details>`:''}
+  </div>`;
+}
+
+/* Kartenmotor: zeichnet die Route aus dem GPX auf ein Canvas, ohne Kartenkacheln */
+const _proj=new WeakMap();
+function projRoute(route){
+  if(_proj.has(route)) return _proj.get(route);
+  const p=route.pts; let la=0, lo=0; for(const q of p){ la+=q[2]; lo+=q[3]; } la/=p.length; lo/=p.length;
+  const k=Math.cos(la*Math.PI/180);
+  const xy=p.map(q=>[(q[3]-lo)*k*111.32, -(q[2]-la)*110.57]);
+  let x0=Infinity,y0=Infinity,x1=-Infinity,y1=-Infinity; for(const [x,y] of xy){ if(x<x0)x0=x; if(x>x1)x1=x; if(y<y0)y0=y; if(y>y1)y1=y; }
+  const P={lat0:la, lon0:lo, k, xy, box:[x0,y0,x1,y1]}; _proj.set(route,P); return P;
+}
+function projLL(P, lat, lon){ return [(lon-P.lon0)*P.k*111.32, -(lat-P.lat0)*110.57]; }
+function routeLL(route, km){
+  const p=route.pts, i=idxAt(p,km);
+  if(i>=p.length-1) return [p[i][2],p[i][3]];
+  const a=p[i], b=p[i+1], f=Math.max(0,Math.min(1,(km-a[0])/((b[0]-a[0])||1)));
+  return [a[2]+(b[2]-a[2])*f, a[3]+(b[3]-a[3])*f];
+}
+function accLL(e, a){ const c=parseCoords(a.coords); if(c) return [c.lat,c.lon]; if(a.km!=null && e.route) return routeLL(e.route, a.km); return null; }
+let M=null;
+function mapFit(){
+  const P=M.P, [x0,y0,x1,y1]=P.box;
+  ui.map.cx=(x0+x1)/2; ui.map.cy=(y0+y1)/2;
+  ui.map.scale=Math.min((M.W-40)/Math.max(1,x1-x0), (M.H-40)/Math.max(1,y1-y0));
+}
+function mapMinScale(){ const [x0,y0,x1,y1]=M.P.box; return 0.4*Math.min(M.W/Math.max(1,x1-x0), M.H/Math.max(1,y1-y0)); }
+function mapCenterPos(){
+  const e=ev(); const [la,lo]=routeLL(e.route, +e.lage.km||0); const [x,y]=projLL(M.P,la,lo);
+  ui.map.cx=x; ui.map.cy=y; if(ui.map.scale<Math.min(M.W,M.H)/160) ui.map.scale=Math.min(M.W,M.H)/120; drawMap();
+}
+function mapZoom(f, sx, sy){
+  if(sx==null){ sx=M.W/2; sy=M.H/2; }
+  const m=ui.map, ns=Math.max(mapMinScale(), Math.min(600, m.scale*f));
+  const wx=m.cx+(sx-M.W/2)/m.scale, wy=m.cy+(sy-M.H/2)/m.scale;
+  m.scale=ns; m.cx=wx-(sx-M.W/2)/ns; m.cy=wy-(sy-M.H/2)/ns; drawMap();
+}
+function initMap(){
+  const cv=document.getElementById('map'); if(!cv) return;
+  const e=ev(), wrap=cv.parentElement, dpr=window.devicePixelRatio||1;
+  const W=wrap.clientWidth, H=wrap.clientHeight;
+  cv.width=Math.round(W*dpr); cv.height=Math.round(H*dpr);
+  M={cv, P:projRoute(e.route), W, H, dpr, marks:[]};
+  if(!ui.map || ui.map.key!==e.id+'|'+e.route.totalKm){
+    ui.map={key:e.id+'|'+e.route.totalKm, cx:0, cy:0, scale:1};
+    const [la,lo]=routeLL(e.route, +e.lage.km||0); const [x,y]=projLL(M.P,la,lo);
+    ui.map.cx=x; ui.map.cy=y; ui.map.scale=Math.min(W,H)/120;
+  }
+  drawMap();
+  const ptrs=new Map(); let moved=false, start=null, pinch=null;
+  const pt=ev_=>{ const r=cv.getBoundingClientRect(); return {x:ev_.clientX-r.left, y:ev_.clientY-r.top}; };
+  cv.addEventListener('pointerdown', ev_=>{
+    try{ cv.setPointerCapture(ev_.pointerId); }catch(_){}
+    const p=pt(ev_); ptrs.set(ev_.pointerId,p);
+    if(ptrs.size===1){ moved=false; start=p; }
+    if(ptrs.size===2){ const [a,b]=[...ptrs.values()]; pinch={d:Math.hypot(a.x-b.x,a.y-b.y)||1, scale:ui.map.scale, cx:ui.map.cx, cy:ui.map.cy, mx:(a.x+b.x)/2, my:(a.y+b.y)/2}; moved=true; }
+  });
+  cv.addEventListener('pointermove', ev_=>{
+    if(!ptrs.has(ev_.pointerId)) return;
+    const prev=ptrs.get(ev_.pointerId), p=pt(ev_); ptrs.set(ev_.pointerId,p);
+    const m=ui.map;
+    if(ptrs.size===1){
+      if(Math.abs(p.x-start.x)+Math.abs(p.y-start.y)>8) moved=true;
+      if(moved){ m.cx-=(p.x-prev.x)/m.scale; m.cy-=(p.y-prev.y)/m.scale; drawMap(); }
+    } else if(ptrs.size===2 && pinch){
+      const [a,b]=[...ptrs.values()], d=Math.hypot(a.x-b.x,a.y-b.y)||1, mx=(a.x+b.x)/2, my=(a.y+b.y)/2;
+      const ns=Math.max(mapMinScale(), Math.min(600, pinch.scale*d/pinch.d));
+      const wx=pinch.cx+(pinch.mx-W/2)/pinch.scale, wy=pinch.cy+(pinch.my-H/2)/pinch.scale;
+      m.scale=ns; m.cx=wx-(mx-W/2)/ns; m.cy=wy-(my-H/2)/ns; drawMap();
+    }
+  });
+  const up=ev_=>{
+    if(!ptrs.has(ev_.pointerId)) return;
+    const p=pt(ev_); ptrs.delete(ev_.pointerId);
+    if(ptrs.size<2) pinch=null;
+    if(ptrs.size===0 && !moved && ev_.type==='pointerup') mapTap(p.x,p.y);
+  };
+  cv.addEventListener('pointerup', up); cv.addEventListener('pointercancel', up);
+  cv.addEventListener('wheel', ev_=>{ ev_.preventDefault(); const p=pt(ev_); mapZoom(Math.exp(-ev_.deltaY*0.0015), p.x, p.y); }, {passive:false});
+}
+function mapTap(x,y){
+  let best=null;
+  for(const mk of M.marks){ const d=Math.hypot(mk.x-x, mk.y-y); if(d<26 && (!best||d<best.d)) best={d,id:mk.id}; }
+  const nid = best ? best.id : null;
+  if(nid && best){ // ausgewählten Punkt ins obere Drittel schieben, damit die Karte unten ihn nicht verdeckt
+    const mk=M.marks.find(q=>q.id===nid), m=ui.map;
+    if(mk.y > M.H*0.45){ m.cy += (mk.y - M.H*0.3)/m.scale; }
+  }
+  if(nid!==ui.mapSel){ ui.mapSel=nid; render(); }
+}
+function drawMap(){
+  if(!M || !M.cv.isConnected) return;
+  const e=ev(), c=lastCalc, g=M.cv.getContext('2d'), W=M.W, H=M.H, m=ui.map, pts=e.route.pts, xy=M.P.xy;
+  g.setTransform(M.dpr,0,0,M.dpr,0,0);
+  g.fillStyle='#0B0E11'; g.fillRect(0,0,W,H);
+  const S=(x,y)=>[(x-m.cx)*m.scale+W/2, (y-m.cy)*m.scale+H/2];
+  const cur=c?c.curKm:(+e.lage.km||0), reach=c?Math.max(cur,c.reachKm):cur, total=e.route.totalKm;
+  // Raster als Massstab: 10/50/100 km
+  const stroke=(from,to,color,w)=>{
+    if(to<=from) return;
+    g.beginPath(); let st=false, lx=0, ly=0;
+    const i0=idxAt(pts,from);
+    for(let i=i0;i<pts.length;i++){
+      const [x,y]=S(xy[i][0],xy[i][1]);
+      if(!st){ g.moveTo(x,y); st=true; lx=x; ly=y; }
+      else if(Math.abs(x-lx)+Math.abs(y-ly)>1.2 || pts[i][0]>=to){ g.lineTo(x,y); lx=x; ly=y; }
+      if(pts[i][0]>=to) break;
+    }
+    g.strokeStyle=color; g.lineWidth=w; g.lineJoin='round'; g.lineCap='round'; g.stroke();
+  };
+  stroke(0,cur,'#3A434C',3);
+  stroke(reach,total,'#6E7A85',3);
+  stroke(cur,reach,'#FFB547',5);
+  // km-Marken
+  const steps=[1,2,5,10,25,50,100,200,500]; let step=steps.find(s=>s*m.scale>=80)||500;
+  g.font='600 11px -apple-system,BlinkMacSystemFont,system-ui,sans-serif'; g.textBaseline='middle';
+  for(let k=step;k<total;k+=step){
+    const [la,lo]=routeLL(e.route,k), [px,py]=projLL(M.P,la,lo), [x,y]=S(px,py);
+    if(x<-20||y<-20||x>W+20||y>H+20) continue;
+    g.fillStyle='#C9D1D8'; g.beginPath(); g.arc(x,y,2.5,0,7); g.fill();
+    g.lineWidth=3; g.strokeStyle='#0B0E11'; g.strokeText(k+' km',x+6,y); g.fillText(k+' km',x+6,y);
+  }
+  // Unterkünfte
+  const byId=new Map((c?c.list:[]).map(r=>[r.a.id,r]));
+  M.marks=[];
+  const showNames = m.scale>=2.2; const labels=[];
+  const items=e.accs.map(a=>({a, r:byId.get(a.id), ll:accLL(e,a)})).filter(o=>o.ll);
+  items.sort((p,q)=>(p.r?1:0)-(q.r?1:0) || ((p.r&&p.r.recommended)?1:0)-((q.r&&q.r.recommended)?1:0));
+  for(const o of items){
+    const [px,py]=projLL(M.P,o.ll[0],o.ll[1]), [x,y]=S(px,py);
+    if(x<-30||y<-30||x>W+30||y>H+30) continue;
+    const behind=!o.r, col=markColor(o.r||{}, behind), big=o.r&&(o.r.recommended||o.r.status==='gebucht');
+    const rad=big?10:7.5;
+    if(o.a.id===ui.mapSel){ g.beginPath(); g.arc(x,y,rad+6,0,7); g.strokeStyle='#F2F4F5'; g.lineWidth=2.5; g.stroke(); }
+    g.beginPath(); g.arc(x,y,rad,0,7); g.fillStyle=col; g.fill(); g.lineWidth=2; g.strokeStyle='#0B0E11'; g.stroke();
+    if(o.r&&o.r.status==='gebucht'){ g.strokeStyle='#0B0E11'; g.lineWidth=2.5; g.beginPath(); g.moveTo(x-4,y); g.lineTo(x-1,y+3); g.lineTo(x+4.5,y-3.5); g.stroke(); }
+    M.marks.push({x,y,id:o.a.id,rad,t:(showNames && (!behind || m.scale>=12)) ? o.a.name+(o.r?' · '+hmPlain(o.r.eta):'') : null, big, behind});
+  }
+  // Beschriftungen: wichtigste zuerst, überlappende weglassen
+  const order=M.marks.slice().reverse();
+  for(const mk of order){
+    if(!mk.t) continue;
+    g.font=(mk.big?'700 ':'600 ')+'12px -apple-system,BlinkMacSystemFont,system-ui,sans-serif';
+    const w=g.measureText(mk.t).width;
+    const fits=bx=>{ const box=[bx-2, mk.y-9, bx+w+2, mk.y+9];
+      if(box[0]<4 || box[2]>W-4) return null;
+      if(box[2]>W-62 && box[1]<250) return null; // Kartenknöpfe
+      if(labels.some(b=>!(box[2]<b[0]||box[0]>b[2]||box[3]<b[1]||box[1]>b[3]))) return null;
+      return box; };
+    let bx=mk.x+mk.rad+5, box=fits(bx);
+    if(!box){ bx=mk.x-mk.rad-5-w; box=fits(bx); }
+    if(!box) continue;
+    labels.push(box);
+    g.lineWidth=3.5; g.strokeStyle='#0B0E11'; g.strokeText(mk.t,bx,mk.y); g.fillStyle=mk.behind?'#7D8893':'#F2F4F5'; g.fillText(mk.t,bx,mk.y);
+  }
+  // Position
+  const [la,lo]=routeLL(e.route,cur), [ppx,ppy]=projLL(M.P,la,lo), [x,y]=S(ppx,ppy);
+  g.beginPath(); g.arc(x,y,17,0,7); g.fillStyle='rgba(90,169,255,.22)'; g.fill();
+  g.beginPath(); g.arc(x,y,8,0,7); g.fillStyle=MCOL.pos; g.fill(); g.lineWidth=3; g.strokeStyle='#F2F4F5'; g.stroke();
+  // Massstab
+  const sk=[0.5,1,2,5,10,20,50,100].find(s=>s*m.scale>=60)||100, sw=sk*m.scale;
+  g.fillStyle='#C9D1D8'; g.fillRect(12,H-18,sw,3); g.font='600 11px -apple-system,system-ui,sans-serif'; g.textBaseline='bottom';
+  g.lineWidth=3; g.strokeStyle='#0B0E11'; g.strokeText(sk+' km',12,H-22); g.fillText(sk+' km',12,H-22);
+}
+let _rzT=null; window.addEventListener('resize', ()=>{ clearTimeout(_rzT); _rzT=setTimeout(()=>{ if(ui.view==='karte'&&ui.kmode==='map') render(); }, 150); });
+
 /* ---- Aktionen ---- */
 function setStatus(id, s){
   const e=ev(); e.status=e.status||{};
@@ -770,7 +995,12 @@ document.addEventListener('click', ev_=>{
       if(e.log.length>200) e.log=e.log.slice(-200);
       saveStore(); ui.view=e.bookedId && e.accs.some(x=>x.id===e.bookedId && x.km>km)? 'gebucht':'optionen'; render(); window.scrollTo(0,0); break; }
     case 'delLog': e.log=e.log.filter(x=>String(x.t)!==el.dataset.t); saveStore(); render(); break;
-    case 'detail': ui.detailId=el.dataset.id; ui.view='detail'; render(); window.scrollTo(0,0); break;
+    case 'detail': if(ui.view!=='detail') ui.back=ui.view; ui.detailId=el.dataset.id; ui.view='detail'; render(); window.scrollTo(0,0); break;
+    case 'kmode': ui.kmode=el.dataset.m; render(); break;
+    case 'mzoom': mapZoom(+el.dataset.d>0?1.6:1/1.6); break;
+    case 'mpos': mapCenterPos(); break;
+    case 'mfit': mapFit(); drawMap(); break;
+    case 'mclose': ui.mapSel=null; render(); break;
     case 'status': setStatus(ui.detailId, el.dataset.s); if(el.dataset.s==='gebucht'){ ui.view='gebucht'; window.scrollTo(0,0); toast('Als gebucht markiert.'); } render(); break;
     case 'status2': setStatus(el.dataset.id, el.dataset.s); render(); break;
     case 'csvPaste': { const t=document.getElementById('csvText').value; importCsv(t); break; }
